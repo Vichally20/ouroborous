@@ -1,44 +1,38 @@
-import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 
 enum TextSpeedOption { slow, normal, fast, instant }
 
-class SettingsState extends ChangeNotifier {
-  double masterVolume = 85.0;
-  TextSpeedOption textSpeed = TextSpeedOption.fast;
-  bool screenShake = true;
-  bool cloudSync = true;
+class SettingsState extends GetxController {
+  final masterVolume = 85.0.obs;
+  final textSpeed = TextSpeedOption.fast.obs;
+  final screenShake = true.obs;
+  final cloudSync = true.obs;
 
   void setMasterVolume(double value) {
-    masterVolume = value;
-    notifyListeners();
+    masterVolume.value = value;
   }
 
   void setTextSpeed(TextSpeedOption speed) {
-    textSpeed = speed;
-    notifyListeners();
+    textSpeed.value = speed;
   }
 
   void toggleScreenShake() {
-    screenShake = !screenShake;
-    notifyListeners();
+    screenShake.value = !screenShake.value;
   }
 
   void toggleCloudSync() {
-    cloudSync = !cloudSync;
-    notifyListeners();
+    cloudSync.value = !cloudSync.value;
   }
 
   void wipeSaveData() {
-    // Reset defaults
-    masterVolume = 80.0;
-    textSpeed = TextSpeedOption.normal;
-    screenShake = true;
-    cloudSync = false;
-    notifyListeners();
+    masterVolume.value = 80.0;
+    textSpeed.value = TextSpeedOption.normal;
+    screenShake.value = true;
+    cloudSync.value = false;
   }
 
   String get textSpeedLabel {
-    switch (textSpeed) {
+    switch (textSpeed.value) {
       case TextSpeedOption.slow:
         return 'Slow';
       case TextSpeedOption.normal:

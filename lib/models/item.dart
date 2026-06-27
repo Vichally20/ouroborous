@@ -1,4 +1,4 @@
-enum ItemCategory { weapon, apparel, consumable, essence }
+enum ItemCategory { weapon, apparel, consumable, essence, miscellaneous, currency }
 
 enum ItemRarity { common, unpolished, clinical, relic, vitruvian }
 
@@ -13,6 +13,7 @@ class ArtifactItem {
   final double weight;
   final AnatomicalSlot equipSlot;
   final int statBonus;
+  final int count;
 
   const ArtifactItem({
     required this.id,
@@ -23,5 +24,6 @@ class ArtifactItem {
     required this.weight,
     this.equipSlot = AnatomicalSlot.none,
     this.statBonus = 0,
+    this.count = 1,
   });
 }

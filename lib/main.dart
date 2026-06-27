@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'core/constants/colors.dart';
 import 'core/constants/typography.dart';
 import 'core/theme/manuscript_theme.dart';
 import 'states/game_controller.dart';
+import 'states/navigation_state.dart';
 import 'ui/screens/game_hub_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/screens/you_hub_screen.dart';
+import 'ui/screens/intro_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,131 +20,132 @@ class VitruvianShadowApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    final gameController = Get.put(GameController());
+
+    return GetMaterialApp(
       title: 'Vitruvian Shadow RPG',
       debugShowCheckedModeBanner: false,
       theme: ManuscriptTheme.darkTheme,
-      home: const ManuscriptMainScaffold(),
+      home: Obx(() {
+        if (gameController.playerState.hasCreatedCharacter.value) {
+          return const ManuscriptMainScaffold();
+        } else {
+          return const IntroScreen();
+        }
+      }),
     );
   }
 }
 
-class ManuscriptMainScaffold extends StatefulWidget {
+class ManuscriptMainScaffold extends StatelessWidget {
   const ManuscriptMainScaffold({super.key});
 
   @override
-  State<ManuscriptMainScaffold> createState() => _ManuscriptMainScaffoldState();
-}
-
-class _ManuscriptMainScaffoldState extends State<ManuscriptMainScaffold> {
-  late final GameController _gameController;
-
-  @override
-  void initState() {
-    super.initState();
-    _gameController = GameController();
-  }
-
-  @override
-  void dispose() {
-    _gameController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: _gameController,
-      builder: (context, child) {
-        final activeTab = _gameController.activeHubTab;
+    final gameController = Get.find<GameController>();
+    final navState = Get.find<NavigationState>();
 
-        Widget currentScreen;
+    return Obx(() {
+      final activeTab = gameController.activeHubTab.value;
+      final currentNode = navState.currentNode;
 
-        switch (activeTab) {
-          case MainHubTab.you:
-            currentScreen = YouHubScreen(
-              playerState: _gameController.playerState,
-              inventoryState: _gameController.inventoryState,
-            );
-            break;
-          case MainHubTab.game:
-            currentScreen = GameHubScreen(
-              navigationState: _gameController.navigationState,
-              playerState: _gameController.playerState,
-            );
-            break;
-          case MainHubTab.settings:
-            currentScreen = SettingsScreen(settingsState: _gameController.settingsState);
-            break;
-        }
+      Widget currentScreen;
+      String appBarTitle = 'VITRUVIAN SHADOW';
+      List<Widget> actions = [];
+      Widget? leadingBtn;
 
-        return Scaffold(
-          appBar: AppBar(
-            backgroundColor: const Color(0xFF0C0A08),
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.menu_book, color: VitruvianColors.sepiaUmber),
-              onPressed: () => _gameController.selectHubTab(MainHubTab.game),
+      switch (activeTab) {
+        case MainHubTab.you:
+          currentScreen = const YouHubScreen();
+          appBarTitle = 'VITRUVIAN SHADOW';
+          actions = [
+            IconButton(
+              icon: const Icon(Icons.map_outlined, color: VitruvianColors.sepiaUmber),
+              onPressed: () => gameController.selectHubTab(MainHubTab.game),
               tooltip: 'Open Game Chronicle',
             ),
-            title: Text(
-              'VITRUVIAN SHADOW',
-              style: VitruvianTypography.serifTitle(
-                fontSize: 20,
-                color: const Color(0xFFE0C8B0),
-              ).copyWith(letterSpacing: 2.0),
+          ];
+          break;
+        case MainHubTab.game:
+          currentScreen = const GameHubScreen();
+          appBarTitle = currentNode.title;
+          actions = [
+            IconButton(
+              icon: Icon(
+                navState.isShowingMap.value ? Icons.history_edu : Icons.map_outlined,
+                color: VitruvianColors.sepiaUmber,
+              ),
+              onPressed: navState.toggleChronicleMap,
+              tooltip: navState.isShowingMap.value ? 'Open Chronicle' : 'Open Tactical Map',
             ),
-            centerTitle: true,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.auto_stories, color: VitruvianColors.sepiaUmber),
-                onPressed: () => _gameController.selectHubTab(MainHubTab.you),
-                tooltip: 'Open Player Manuscript',
+          ];
+          break;
+        case MainHubTab.settings:
+          currentScreen = const SettingsScreen();
+          appBarTitle = 'VITRUVIAN SHADOW';
+          break;
+      }
+
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0C0A08),
+          elevation: 0,
+          leading: leadingBtn,
+          title: Text(
+            appBarTitle,
+            style: VitruvianTypography.serifTitle(
+              fontSize: activeTab == MainHubTab.game ? 20 : 18,
+              color: VitruvianColors.agedBone,
+            ).copyWith(letterSpacing: 1.2),
+          ),
+          centerTitle: true,
+          actions: actions,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1.0),
+            child: Container(color: const Color(0xFF2A2218), height: 1.0),
+          ),
+        ),
+        body: currentScreen,
+        bottomNavigationBar: Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF0C0A08),
+            border: Border(top: BorderSide(color: Color(0xFF2A2218), width: 1.0)),
+          ),
+          child: BottomNavigationBar(
+            currentIndex: activeTab.index,
+            onTap: (index) => gameController.selectHubTab(MainHubTab.values[index]),
+            backgroundColor: const Color(0xFF0C0A08),
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: VitruvianColors.agedBone,
+            unselectedItemColor: VitruvianColors.sepiaUmber.withValues(alpha: 0.4),
+            selectedLabelStyle: VitruvianTypography.serifTitle(fontSize: 12),
+            unselectedLabelStyle: VitruvianTypography.serifTitle(fontSize: 11),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.portrait_outlined, size: 22),
+                ),
+                label: 'You',
+              ),
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.menu_book_outlined, size: 22),
+                ),
+                label: 'Game',
+              ),
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.settings_outlined, size: 22),
+                ),
+                label: 'Settings',
               ),
             ],
           ),
-          body: currentScreen,
-          bottomNavigationBar: Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFF0C0A08),
-              border: Border(top: BorderSide(color: Color(0xFF2A2218), width: 1.0)),
-            ),
-            child: BottomNavigationBar(
-              currentIndex: activeTab.index,
-              onTap: (index) => _gameController.selectHubTab(MainHubTab.values[index]),
-              backgroundColor: const Color(0xFF0C0A08),
-              type: BottomNavigationBarType.fixed,
-              selectedItemColor: VitruvianColors.agedBone,
-              unselectedItemColor: VitruvianColors.sepiaUmber.withValues(alpha: 0.4),
-              selectedLabelStyle: VitruvianTypography.serifTitle(fontSize: 11),
-              unselectedLabelStyle: VitruvianTypography.serifTitle(fontSize: 10),
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Padding(
-                    padding: EdgeInsets.only(bottom: 4),
-                    child: Icon(Icons.portrait_outlined, size: 22),
-                  ),
-                  label: 'YOU',
-                ),
-                BottomNavigationBarItem(
-                  icon: Padding(
-                    padding: EdgeInsets.only(bottom: 4),
-                    child: Icon(Icons.menu_book_outlined, size: 22),
-                  ),
-                  label: 'GAME',
-                ),
-                BottomNavigationBarItem(
-                  icon: Padding(
-                    padding: EdgeInsets.only(bottom: 4),
-                    child: Icon(Icons.settings_outlined, size: 22),
-                  ),
-                  label: 'SETTINGS',
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+        ),
+      );
+    });
   }
 }

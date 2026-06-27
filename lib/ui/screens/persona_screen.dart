@@ -1,223 +1,285 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../models/character_class.dart';
 import '../../models/item.dart';
 import '../../states/player_state.dart';
-import '../widgets/etched_container.dart';
 
 class PersonaScreen extends StatelessWidget {
-  final PlayerState playerState;
-
-  const PersonaScreen({super.key, required this.playerState});
+  const PersonaScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: playerState,
-      builder: (context, child) {
-        final loadout = playerState.loadout;
-        final vitals = playerState.vitals;
-        final currentClass = playerState.characterClass;
+    final playerState = Get.find<PlayerState>();
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Class Identification & Level Header
-              EtchedContainer(
-                borderColor: VitruvianColors.sepiaUmber,
-                child: Column(
-                  children: [
-                    Text(
-                      '${currentClass.title.toUpperCase()} [LVL ${playerState.level}]',
-                      style: VitruvianTypography.serifTitle(fontSize: 20),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      currentClass.clinicalRationale,
-                      style: VitruvianTypography.serifBody(
-                        fontSize: 14,
-                        color: VitruvianColors.sepiaUmber,
+    return Obx(() {
+      final activeHero = playerState.heroes[playerState.activeHeroIndex.value];
+      final loadout = playerState.loadout.value;
+      final currentClass = playerState.characterClass.value;
+
+      final damageVal = (loadout.mainHand?.statBonus ?? 14) * 3 + 12;
+      final armourVal = (loadout.chest?.statBonus ?? 30) +
+          (loadout.head?.statBonus ?? 12) +
+          (loadout.secondaryHand?.statBonus ?? 18) +
+          (loadout.leg?.statBonus ?? 15);
+      final perkStr = loadout.chest != null ? '+15% Bleed Resist' : '+10% Swing Speed';
+
+      String classImageAsset;
+      switch (currentClass.type) {
+        case PersonalityClassType.warrior:
+          classImageAsset = 'assets/images/class_warrior.jpg';
+          break;
+        case PersonalityClassType.sorcerer:
+          classImageAsset = 'assets/images/class_sorcerer.jpg';
+          break;
+        case PersonalityClassType.assassin:
+          classImageAsset = 'assets/images/class_assassin.jpg';
+          break;
+      }
+
+      return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // TOP HEADER
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SizedBox(width: 40), // Balance notification icon
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        activeHero.name.toUpperCase(),
+                        style: VitruvianTypography.serifTitle(
+                          fontSize: 22,
+                          color: const Color(0xFFE0C8B0),
+                        ).copyWith(letterSpacing: 1.5),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Vitals, XP Tracker & Encumbrance Status
-              EtchedContainer(
-                child: Column(
-                  children: [
-                    _buildStatusBar(
-                      label: 'PHYSICAL INTEGRITY (HP)',
-                      value: '${vitals.currentHp}/${vitals.maxHp}',
-                      progress: vitals.currentHp / vitals.maxHp,
-                      color: VitruvianColors.agedBone,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildStatusBar(
-                      label: 'HERMETIC MANA',
-                      value: '${vitals.currentMana}/${vitals.maxMana}',
-                      progress: vitals.currentMana / vitals.maxMana,
-                      color: Colors.cyanAccent,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildStatusBar(
-                      label: 'CLINICAL XP PROGRESSION',
-                      value: '${playerState.currentXp}/${playerState.xpToNextLevel} XP',
-                      progress: playerState.currentXp / playerState.xpToNextLevel,
-                      color: Colors.amberAccent,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildStatusBar(
-                      label: 'ENCUMBRANCE TRACKING',
-                      value:
-                          '${loadout.totalEquippedWeight.toStringAsFixed(1)}/${playerState.maxWeightCapacity.toStringAsFixed(0)} KG',
-                      progress: (loadout.totalEquippedWeight /
-                              playerState.maxWeightCapacity)
-                          .clamp(0.0, 1.0),
-                      color: playerState.isEncumbered
-                          ? VitruvianColors.rustBlood
-                          : VitruvianColors.sepiaUmber,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Centralized Body-Map Vitruvian Schematic (Head, Chest, Leg, Main Hand, Secondary Hand)
-              EtchedContainer(
-                height: 380,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Opacity(
-                      opacity: 0.15,
-                      child: Icon(
-                        Icons.accessibility_new,
-                        size: 280,
-                        color: VitruvianColors.agedBone,
+                      const SizedBox(height: 4),
+                      Text(
+                        currentClass.title
+                            .toUpperCase()
+                            .replaceAll('-SCRIBE', '')
+                            .replaceAll('SCRIBE', ''),
+                        style: VitruvianTypography.serifBody(
+                          fontSize: 12,
+                          color: const Color(0xFFC89B5D),
+                        ).copyWith(letterSpacing: 3.0),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildSlotTile('HEAD', loadout.head, Icons.psychology),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _buildSlotTile('SECONDARY HAND', loadout.secondaryHand, Icons.shield),
-                            _buildSlotTile('CHEST', loadout.chest, Icons.favorite),
-                            _buildSlotTile('MAIN HAND', loadout.mainHand, Icons.colorize),
-                          ],
-                        ),
-                        _buildSlotTile('LEG', loadout.leg, Icons.nordic_walking),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined, color: VitruvianColors.sepiaUmber),
+                  onPressed: () {},
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
 
-              // XP Demo Button & Class Switcher
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            // VITRUVIAN MAN IMAGE & EQUIPMENT SLOTS
+            Container(
+              height: 380,
+              decoration: const BoxDecoration(
+                color: Color(0xFF0C0A08),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  InkWell(
-                    onTap: () => playerState.gainXp(35),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF201B10),
-                        border: Border.all(color: Colors.amberAccent),
-                      ),
-                      child: Text('+35 XP [TEST]', style: VitruvianTypography.monospaceData(fontSize: 11, color: Colors.amberAccent)),
+                  Opacity(
+                    opacity: 0.35,
+                    child: Image.asset(
+                      classImageAsset,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 380,
                     ),
                   ),
-                  _buildClassBtn('Warrior', PersonalityClass.warrior),
-                  _buildClassBtn('Sorcerer', PersonalityClass.sorcerer),
-                  _buildClassBtn('Assassin', PersonalityClass.assassin),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildSlotTile('HEAD', loadout.head, Icons.sports_martial_arts),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildSlotTile('SECONDARY HAND', loadout.secondaryHand, Icons.shield_outlined),
+                          _buildSlotTile('CHEST', loadout.chest, Icons.health_and_safety_outlined),
+                          _buildSlotTile('MAIN HAND', loadout.mainHand, Icons.colorize_outlined),
+                        ],
+                      ),
+                      _buildSlotTile('LEG', loadout.leg, Icons.directions_walk),
+                    ],
+                  ),
                 ],
               ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+            ),
+            const SizedBox(height: 28),
 
-  Widget _buildStatusBar({
-    required String label,
-    required String value,
-    required double progress,
-    required Color color,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: VitruvianTypography.monospaceData(fontSize: 11)),
-            Text(value, style: VitruvianTypography.monospaceData(fontSize: 11)),
+            // LOADOUT SECTION
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'L O A D O U T',
+                  style: VitruvianTypography.serifTitle(
+                    fontSize: 18,
+                    color: const Color(0xFFC89B5D),
+                  ).copyWith(letterSpacing: 2.0),
+                ),
+                Text(
+                  'WEIGHT: ${loadout.totalEquippedWeight.toStringAsFixed(1)} / ${playerState.maxWeightCapacity.value.toStringAsFixed(0)}',
+                  style: VitruvianTypography.monospaceData(
+                    fontSize: 12,
+                    color: const Color(0xFF8A7A68),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Divider(color: Color(0xFF2A2218), thickness: 1),
+            const SizedBox(height: 8),
+
+            _buildLoadoutRow('Damage', '$damageVal - ${damageVal + 18}'),
+            _buildLoadoutRow('Armour', '$armourVal'),
+            _buildLoadoutRow('Perks from Equipment', perkStr, valColor: const Color(0xFFC89B5D)),
+            const SizedBox(height: 16),
+            
+            // Hero Description Callout Card
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0C0A08),
+                border: Border.all(color: const Color(0xFF2A2218), width: 1.0),
+              ),
+              child: Text(
+                activeHero.description,
+                style: VitruvianTypography.serifBody(
+                  fontSize: 13,
+                  color: const Color(0xFF8A7A68),
+                  height: 1.4,
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // CHARACTER SELECTION ROSTER
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: List.generate(playerState.heroes.length, (index) {
+                final hero = playerState.heroes[index];
+                final firstName = hero.name.split(' ').first;
+                return _buildCharacterBtn(firstName, index, playerState);
+              }),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
-        const SizedBox(height: 4),
-        LinearProgressIndicator(
-          value: progress.isNaN ? 0 : progress,
-          backgroundColor: VitruvianColors.etchedHairline,
-          valueColor: AlwaysStoppedAnimation<Color>(color),
-          minHeight: 4,
+      );
+    });
+  }
+
+  Widget _buildSlotTile(String name, ArtifactItem? item, IconData icon) {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            color: const Color(0xFF151310).withValues(alpha: 0.92),
+            border: Border.all(
+              color: item != null ? const Color(0xFFC89B5D) : const Color(0xFF3A2C20),
+              width: 1.2,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 30,
+                color: item != null ? const Color(0xFFC89B5D) : const Color(0xFF8A7A68),
+              ),
+              if (item != null) ...[
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                  child: Text(
+                    item.name,
+                    style: VitruvianTypography.monospaceData(fontSize: 8, color: VitruvianColors.agedBone),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
+        if (item != null)
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.all(4),
+            decoration: const BoxDecoration(
+              color: Color(0xFFC89B5D),
+              shape: BoxShape.circle,
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildSlotTile(String name, ArtifactItem? item, IconData icon) {
-    return EtchedContainer(
-      width: 95,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-      borderColor: item != null ? VitruvianColors.sepiaUmber : VitruvianColors.etchedHairline,
-      backgroundColor: item != null ? const Color(0xFF151310) : VitruvianColors.voidBlack,
-      child: Column(
+  Widget _buildLoadoutRow(String label, String value, {Color? valColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Row(
         children: [
-          Icon(icon, size: 20, color: item != null ? VitruvianColors.sepiaUmber : Colors.grey),
-          const SizedBox(height: 4),
-          Text(
-            name,
-            style: VitruvianTypography.monospaceData(fontSize: 8, color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            item?.name ?? '[EMPTY]',
-            style: VitruvianTypography.serifBody(
-              fontSize: 11,
-              color: item != null ? VitruvianColors.agedBone : Colors.white24,
+          Text(label, style: VitruvianTypography.serifBody(fontSize: 16, color: VitruvianColors.agedBone)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final dotCount = (constraints.maxWidth / 5).floor();
+                return Text(
+                  '.' * dotCount,
+                  style: const TextStyle(color: Color(0xFF2A2218), fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.clip,
+                );
+              },
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: VitruvianTypography.monospaceData(
+              fontSize: 15,
+              color: valColor ?? const Color(0xFFE0C8B0),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildClassBtn(String title, PersonalityClass pClass) {
-    final isSelected = playerState.characterClass.type == pClass.type;
+  Widget _buildCharacterBtn(String label, int index, PlayerState playerState) {
+    final isSelected = playerState.activeHeroIndex.value == index;
     return InkWell(
-      onTap: () => playerState.setClass(pClass),
-      child: EtchedContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        borderColor: isSelected ? VitruvianColors.sepiaUmber : VitruvianColors.etchedHairline,
-        backgroundColor: isSelected ? const Color(0xFF201B15) : VitruvianColors.voidBlack,
+      onTap: () => playerState.selectHero(index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF3A2C20) : const Color(0xFF151310),
+          border: Border.all(color: isSelected ? const Color(0xFFC89B5D) : const Color(0xFF2A2218)),
+        ),
         child: Text(
-          title,
+          label,
           style: VitruvianTypography.serifBody(
             fontSize: 12,
             color: isSelected ? VitruvianColors.agedBone : Colors.grey,

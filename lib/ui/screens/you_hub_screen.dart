@@ -1,57 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
-import '../../states/inventory_state.dart';
-import '../../states/player_state.dart';
+import '../../states/game_controller.dart';
 import 'inventory_screen.dart';
 import 'persona_screen.dart';
 import 'stats_screen.dart';
 import 'talents_screen.dart';
 
-class YouHubScreen extends StatelessWidget {
-  final PlayerState playerState;
-  final InventoryState inventoryState;
+class YouHubScreen extends StatefulWidget {
+  const YouHubScreen({super.key});
 
-  const YouHubScreen({
-    super.key,
-    required this.playerState,
-    required this.inventoryState,
-  });
+  @override
+  State<YouHubScreen> createState() => _YouHubScreenState();
+}
+
+class _YouHubScreenState extends State<YouHubScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final gameController = Get.find<GameController>();
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: gameController.activeYouTab.value.index,
+    );
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    if (_tabController.index != gameController.activeYouTab.value.index) {
+      gameController.selectYouTab(YouHubTab.values[_tabController.index]);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: Column(
-        children: [
-          Container(
-            color: VitruvianColors.voidBlack,
-            child: TabBar(
-              indicatorColor: VitruvianColors.sepiaUmber,
-              indicatorWeight: 2.0,
-              labelColor: VitruvianColors.agedBone,
-              unselectedLabelColor: Colors.white30,
-              labelStyle: VitruvianTypography.monospaceData(fontSize: 10),
-              tabs: const [
-                Tab(text: 'PERSONA [4.1]'),
-                Tab(text: 'STATS [4.2]'),
-                Tab(text: 'INVENTORY [4.3]'),
-                Tab(text: 'TALENTS [4.4]'),
-              ],
-            ),
+    return Column(
+      children: [
+        Container(
+          color: VitruvianColors.voidBlack,
+          child: TabBar(
+            controller: _tabController,
+            indicatorColor: VitruvianColors.agedBone,
+            indicatorWeight: 3.0,
+            labelColor: VitruvianColors.agedBone,
+            unselectedLabelColor: VitruvianColors.sepiaUmber.withValues(alpha: 0.5),
+            labelStyle: VitruvianTypography.serifTitle(fontSize: 12, fontWeight: FontWeight.bold),
+            unselectedLabelStyle: VitruvianTypography.serifTitle(fontSize: 11),
+            tabs: const [
+              Tab(text: 'EQUIPPED'),
+              Tab(text: 'STATS'),
+              Tab(text: 'INVENTORY'),
+              Tab(text: 'TALENTS'),
+            ],
           ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                PersonaScreen(playerState: playerState),
-                StatsScreen(playerState: playerState),
-                InventoryScreen(inventoryState: inventoryState, playerState: playerState),
-                const TalentsScreen(),
-              ],
-            ),
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: const [
+              PersonaScreen(),
+              StatsScreen(),
+              InventoryScreen(),
+              TalentsScreen(),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

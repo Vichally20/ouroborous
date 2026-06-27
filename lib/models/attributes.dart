@@ -3,12 +3,14 @@ class CoreAttributes {
   int dexterity;
   int intelligence;
   int constitution;
+  int insight;
 
   CoreAttributes({
     this.strength = 10,
     this.dexterity = 10,
     this.intelligence = 10,
     this.constitution = 10,
+    this.insight = 10,
   });
 
   bool checkAttribute(String attr, int requirement) {
@@ -21,6 +23,8 @@ class CoreAttributes {
         return intelligence >= requirement;
       case 'CON':
         return constitution >= requirement;
+      case 'INSIGHT':
+        return insight >= requirement;
       default:
         return false;
     }

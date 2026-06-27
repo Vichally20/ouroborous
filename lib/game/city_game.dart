@@ -1,12 +1,13 @@
 import 'package:flame/game.dart';
+import 'package:get/get.dart';
 import '../states/game_controller.dart';
 import 'components/infinite_background_art.dart';
 import 'components/player.dart';
 
 class CityGame extends FlameGame {
-  final GameController gameController;
+  GameController get gameController => Get.find<GameController>();
 
-  CityGame({required this.gameController});
+  CityGame();
 
   late final Player player;
 

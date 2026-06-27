@@ -1,168 +1,254 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../models/item.dart';
 import '../../states/inventory_state.dart';
 import '../../states/player_state.dart';
-import '../widgets/etched_container.dart';
 
 class InventoryScreen extends StatelessWidget {
-  final InventoryState inventoryState;
-  final PlayerState playerState;
-
-  const InventoryScreen({
-    super.key,
-    required this.inventoryState,
-    required this.playerState,
-  });
+  const InventoryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: inventoryState,
-      builder: (context, child) {
-        final filtered = inventoryState.filteredItems;
+    final inventoryState = Get.find<InventoryState>();
+    final playerState = Get.find<PlayerState>();
 
-        return Column(
+    return Obx(() {
+      final allItems = inventoryState.items;
+
+      final currencies = allItems.where((i) => i.category == ItemCategory.currency).toList();
+      final weapons = allItems.where((i) => i.category == ItemCategory.weapon).toList();
+      final apparel = allItems.where((i) => i.category == ItemCategory.apparel).toList();
+      final consumables = allItems.where((i) => i.category == ItemCategory.consumable).toList();
+      final misc = allItems.where((i) => i.category == ItemCategory.miscellaneous).toList();
+
+      return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Categorized Tabs
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: const Color(0xFF0F0E0C),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildTabBtn('WEAPONS', ItemCategory.weapon),
-                  _buildTabBtn('APPAREL', ItemCategory.apparel),
-                  _buildTabBtn('CONSUMABLES', ItemCategory.consumable),
-                ],
-              ),
-            ),
-            const Divider(),
-
-            // Dense scrollable ledger of artifacts
-            Expanded(
-              child: filtered.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No artifacts recorded in this ledger tab.',
-                        style: VitruvianTypography.serifBody(color: Colors.grey),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(12),
-                      itemCount: filtered.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final item = filtered[index];
-                        return _buildArtifactTile(item);
-                      },
-                    ),
-            ),
+            // SECTIONS IN REQUESTED ORDER
+            _buildSection(context, 'Currency', Icons.monetization_on_outlined, currencies, playerState, inventoryState),
+            _buildSection(context, 'Weapons', Icons.sports_martial_arts, weapons, playerState, inventoryState),
+            _buildSection(context, 'Apparel', Icons.shield_outlined, apparel, playerState, inventoryState),
+            _buildSection(context, 'Consumables', Icons.local_pharmacy_outlined, consumables, playerState, inventoryState),
+            _buildSection(context, 'Miscellaneous', Icons.key_outlined, misc, playerState, inventoryState),
           ],
-        );
-      },
+        ),
+      );
+    });
+  }
+
+  Widget _buildSection(
+    BuildContext context,
+    String title,
+    IconData icon,
+    List<ArtifactItem> items,
+    PlayerState playerState,
+    InventoryState inventoryState,
+  ) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 28.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 22, color: const Color(0xFFC89B5D)),
+              const SizedBox(width: 12),
+              Text(
+                title.toUpperCase(),
+                style: VitruvianTypography.serifTitle(
+                  fontSize: 17,
+                  color: VitruvianColors.agedBone,
+                ).copyWith(letterSpacing: 2.5),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Divider(color: Color(0xFF2A2218), thickness: 1),
+          const SizedBox(height: 6),
+          ...items.map((item) => _buildLedgerRow(context, item, playerState, inventoryState)),
+        ],
+      ),
     );
   }
 
-  Widget _buildTabBtn(String title, ItemCategory cat) {
-    final isSelected = inventoryState.selectedTab == cat;
+  Widget _buildLedgerRow(
+    BuildContext context,
+    ArtifactItem item,
+    PlayerState playerState,
+    InventoryState inv,
+  ) {
+    final isItalic = item.id.contains('2') || item.id == 'ap1';
+    final weightStr = item.category == ItemCategory.currency ? '' : '${item.weight.toStringAsFixed(2)}kg';
+    final countStr = item.category == ItemCategory.currency ? '${item.count}' : 'x${item.count}';
+
     return InkWell(
-      onTap: () => inventoryState.selectTab(cat),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isSelected ? VitruvianColors.sepiaUmber : Colors.transparent,
-              width: 2.0,
+      onTap: () => _handleItemClick(context, item, playerState, inv),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
+          children: [
+            Text(
+              item.name,
+              style: VitruvianTypography.serifBody(
+                fontSize: 15,
+                color: VitruvianColors.agedBone,
+              ).copyWith(fontStyle: isItalic ? FontStyle.italic : FontStyle.normal),
             ),
-          ),
-        ),
-        child: Text(
-          title,
-          style: VitruvianTypography.monospaceData(
-            fontSize: 12,
-            color: isSelected ? VitruvianColors.agedBone : Colors.white30,
-          ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final dotCount = (constraints.maxWidth / 5).floor();
+                  return Text(
+                    '.' * dotCount,
+                    style: const TextStyle(color: Color(0xFF2A2218), fontSize: 11),
+                    maxLines: 1,
+                    overflow: TextOverflow.clip,
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              countStr,
+              style: VitruvianTypography.monospaceData(fontSize: 13, color: VitruvianColors.agedBone),
+            ),
+            if (weightStr.isNotEmpty) ...[
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 58,
+                child: Text(
+                  weightStr,
+                  style: VitruvianTypography.monospaceData(
+                    fontSize: 13,
+                    color: const Color(0xFF8A7A68),
+                  ),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildArtifactTile(ArtifactItem item) {
-    Color rarityColor = Colors.grey;
-    switch (item.rarity) {
-      case ItemRarity.clinical:
-        rarityColor = Colors.cyanAccent;
-        break;
-      case ItemRarity.relic:
-        rarityColor = Colors.amberAccent;
-        break;
-      case ItemRarity.vitruvian:
-        rarityColor = VitruvianColors.sepiaUmber;
-        break;
-      case ItemRarity.unpolished:
-        rarityColor = Colors.white70;
-        break;
-      case ItemRarity.common:
-        rarityColor = Colors.grey;
-        break;
-    }
+  void _handleItemClick(
+    BuildContext context,
+    ArtifactItem item,
+    PlayerState playerState,
+    InventoryState inv,
+  ) {
+    if (item.category == ItemCategory.currency) return;
 
-    return EtchedContainer(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 4,
-            height: 48,
-            color: rarityColor,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
+    String actionLabel = 'USE';
+    if (item.category == ItemCategory.weapon) actionLabel = 'ARM';
+    if (item.category == ItemCategory.apparel) actionLabel = 'WEAR';
+    if (item.category == ItemCategory.consumable) actionLabel = 'CONSUME';
+    if (item.category == ItemCategory.miscellaneous) actionLabel = 'USE';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF151310),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        side: BorderSide(color: Color(0xFF3A2C20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(22.0),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(item.name, style: VitruvianTypography.serifTitle(fontSize: 16)),
-                    Text('${item.weight} KG', style: VitruvianTypography.monospaceData(fontSize: 11)),
-                  ],
+                Text(
+                  item.name.toUpperCase(),
+                  style: VitruvianTypography.serifTitle(
+                    fontSize: 18,
+                    color: const Color(0xFFE0C8B0),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item.description,
-                  style: VitruvianTypography.serifBody(fontSize: 13, color: Colors.white70),
+                  '${item.weight.toStringAsFixed(2)} KG | ${item.category.name.toUpperCase()}',
+                  style: VitruvianTypography.monospaceData(
+                    fontSize: 11,
+                    color: const Color(0xFF8A7A68),
+                  ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 14),
+                Text(
+                  item.description,
+                  style: VitruvianTypography.serifBody(
+                    fontSize: 14,
+                    color: VitruvianColors.agedBone,
+                  ),
+                ),
+                const SizedBox(height: 24),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'RARITY: ${item.rarity.name.toUpperCase()}',
-                      style: VitruvianTypography.monospaceData(fontSize: 10, color: rarityColor),
-                    ),
-                    if (item.equipSlot != AnatomicalSlot.none)
-                      InkWell(
-                        onTap: () => playerState.equipArtifact(item),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: VitruvianColors.sepiaUmber),
-                          ),
-                          child: Text('EQUIP TO ${item.equipSlot.name.toUpperCase()}',
-                              style: VitruvianTypography.monospaceData(fontSize: 9)),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF3A2C20),
+                          foregroundColor: const Color(0xFFC89B5D),
+                          side: const BorderSide(color: Color(0xFFC89B5D)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          if (actionLabel == 'ARM' || actionLabel == 'WEAR') {
+                            playerState.equipArtifact(item);
+                            Get.snackbar('Inventory', 'Equipped ${item.name}',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: const Color(0xFF201B15),
+                                colorText: const Color(0xFFC89B5D));
+                          } else {
+                            if (item.count <= 1) {
+                              inv.removeItem(item.id);
+                            }
+                            Get.snackbar('Inventory', '$actionLabel ${item.name}',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: const Color(0xFF201B15),
+                                colorText: const Color(0xFFC89B5D));
+                          }
+                        },
+                        child: Text(actionLabel, style: VitruvianTypography.serifTitle(fontSize: 14)),
                       ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.redAccent,
+                          side: const BorderSide(color: Colors.redAccent),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          inv.removeItem(item.id);
+                          Get.snackbar('Inventory', 'Disposed of ${item.name}',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: const Color(0xFF201B15),
+                              colorText: Colors.redAccent);
+                        },
+                        child: Text('DISPOSE', style: VitruvianTypography.serifTitle(fontSize: 14)),
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
