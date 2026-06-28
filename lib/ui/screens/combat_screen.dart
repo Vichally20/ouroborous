@@ -7,6 +7,7 @@ import '../../models/character_class.dart';
 import '../../states/player_state.dart';
 import '../../states/combat_state.dart';
 import '../../states/inventory_state.dart';
+import '../../models/combat_models.dart';
 import '../widgets/etched_container.dart';
 
 class CombatScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class CombatScreen extends StatefulWidget {
 class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderStateMixin {
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
+  late Worker _hpWorker;
 
   @override
   void initState() {
@@ -34,8 +36,8 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
     final combatController = Get.find<CombatController>();
     
     // Trigger screen shake when player HP drops
-    ever(combatController.playerHp, (hp) {
-      if (hp < combatController.playerMaxHp.value && hp > 0) {
+    _hpWorker = ever(combatController.playerHp, (hp) {
+      if (mounted && hp < combatController.playerMaxHp.value && hp > 0) {
         _shakeController.forward(from: 0.0);
       }
     });
@@ -43,6 +45,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
 
   @override
   void dispose() {
+    _hpWorker.dispose();
     _shakeController.dispose();
     super.dispose();
   }
@@ -174,7 +177,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
   // Right panel battlefield
   Widget _buildBattlefield(
     CombatController controller,
-    List<EnemyCombatant> enemies,
+    List<Enemy> enemies,
     String? selectedEnemyId,
   ) {
     return Container(
@@ -242,7 +245,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
   // Lane containing enemies
   Widget _buildLaneRow({
     required String title,
-    required List<EnemyCombatant> laneEnemies,
+    required List<Enemy> laneEnemies,
     required String? selectedId,
     required Function(String) onTap,
     required CombatController controller,
@@ -1047,7 +1050,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
                       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    onPressed: () => controller.startCombat(), // restart
+                    onPressed: () => controller.startCombat('combat_crypt_werewolves'), // restart
                     child: Text(
                       'RETRY CONFLICT',
                       style: VitruvianTypography.monospaceData(fontSize: 13),

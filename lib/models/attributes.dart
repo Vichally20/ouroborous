@@ -14,19 +14,27 @@ class CoreAttributes {
   });
 
   bool checkAttribute(String attr, int requirement) {
+    return getAttributeValue(attr) >= requirement;
+  }
+
+  int getAttributeValue(String attr) {
     switch (attr.toUpperCase()) {
       case 'STR':
-        return strength >= requirement;
+      case 'STRENGTH':
+        return strength;
       case 'DEX':
-        return dexterity >= requirement;
+      case 'DEXTERITY':
+        return dexterity;
       case 'INT':
-        return intelligence >= requirement;
+      case 'INTELLIGENCE':
+        return intelligence;
       case 'CON':
-        return constitution >= requirement;
+      case 'CONSTITUTION':
+        return constitution;
       case 'INSIGHT':
-        return insight >= requirement;
+        return insight;
       default:
-        return false;
+        return 0;
     }
   }
 }

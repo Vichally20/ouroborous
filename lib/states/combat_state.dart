@@ -1,34 +1,21 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../models/combat_models.dart';
 import '../models/item.dart';
 import '../states/player_state.dart';
 import '../states/inventory_state.dart';
-
-class EnemyCombatant {
-  final String id;
-  final String name;
-  final String imageAsset;
-  final int maxHp;
-  final RxInt hp;
-  final RxString lane; // 'front' or 'back'
-  final RxBool isDead;
-
-  EnemyCombatant({
-    required this.id,
-    required this.name,
-    required this.imageAsset,
-    required this.maxHp,
-    required int initialHp,
-    required String initialLane,
-  })  : hp = initialHp.obs,
-        lane = initialLane.obs,
-        isDead = (initialHp <= 0).obs;
-}
+import '../game/story_engine.dart';
 
 class CombatController extends GetxController {
   final inCombat = false.obs;
   final isPlayerTurn = true.obs;
+
+  // Bestiary & Encounters
+  final RxMap<String, Enemy> bestiary = <String, Enemy>{}.obs;
+  final RxMap<String, dynamic> encounters = <String, dynamic>{}.obs;
 
   // Player combat vitals
   final playerHp = 100.obs;
@@ -52,7 +39,7 @@ class CombatController extends GetxController {
   final selectedEnemyId = RxnString();
 
   // Enemies list
-  final enemies = <EnemyCombatant>[].obs;
+  final enemies = <Enemy>[].obs;
 
   // Combat Log feed
   final combatLogs = <String>[].obs;
@@ -60,9 +47,40 @@ class CombatController extends GetxController {
   // Damage popups / feedback (e.g. Map of combatantId to floating text)
   final damagePopups = <String, String>{}.obs;
 
+  final RxnString currentVictoryNodeId = RxnString();
+
   final Random _random = Random();
 
-  void startCombat() {
+  @override
+  void onInit() {
+    super.onInit();
+    _loadCombatData();
+  }
+
+  Future<void> _loadCombatData() async {
+    try {
+      final bestiaryJson = await rootBundle.loadString('assets/data/bestiary.json');
+      final Map<String, dynamic> bMap = json.decode(bestiaryJson);
+      for (final key in bMap.keys) {
+        bestiary[key] = Enemy.fromJson(key, bMap[key], 'front');
+      }
+
+      final encountersJson = await rootBundle.loadString('assets/data/encounters.json');
+      final Map<String, dynamic> eMap = json.decode(encountersJson);
+      encounters.assignAll(eMap);
+    } catch (e) {
+      debugPrint('Error loading combat data: $e');
+    }
+  }
+
+  void startCombat(String encounterId, [String? victoryNodeId]) {
+    if (!encounters.containsKey(encounterId)) {
+      addLog('Encounter $encounterId not found!');
+      return;
+    }
+
+    final encounter = encounters[encounterId];
+
     final playerState = Get.find<PlayerState>();
     final activeHero = playerState.heroes[playerState.activeHeroIndex.value];
     
@@ -91,42 +109,32 @@ class CombatController extends GetxController {
     damagePopups.clear();
     combatLogs.clear();
 
-    // 2. Populate enemies
-    enemies.value = [
-      EnemyCombatant(
-        id: 'enemy_orange',
-        name: 'Feral Werewolf',
-        imageAsset: 'assets/images/enemy_werewolf_orange.png',
-        maxHp: 45,
-        initialHp: 45,
-        initialLane: 'front',
-      ),
-      EnemyCombatant(
-        id: 'enemy_black',
-        name: 'Shadow Werewolf',
-        imageAsset: 'assets/images/enemy_werewolf_black.png',
-        maxHp: 40,
-        initialHp: 40,
-        initialLane: 'back',
-      ),
-      EnemyCombatant(
-        id: 'enemy_silver',
-        name: 'Alpha Werewolf',
-        imageAsset: 'assets/images/enemy_werewolf_silver.png',
-        maxHp: 70,
-        initialHp: 70,
-        initialLane: 'back',
-      ),
-    ];
+    // 2. Populate enemies from encounter definition
+    final List<Enemy> spawnedEnemies = [];
+    final List<dynamic> enemyList = encounter['enemies'];
+    
+    for (final eDef in enemyList) {
+      final bestiaryId = eDef['bestiary_id'];
+      final instanceId = eDef['id'];
+      final lane = eDef['lane'];
+      
+      if (bestiary.containsKey(bestiaryId)) {
+        spawnedEnemies.add(bestiary[bestiaryId]!.clone(instanceId, lane));
+      }
+    }
+    enemies.value = spawnedEnemies;
 
-    // Select the first enemy by default
-    selectedEnemyId.value = enemies[0].id;
+    if (enemies.isNotEmpty) {
+      selectedEnemyId.value = enemies[0].id;
+    }
+
+    currentVictoryNodeId.value = victoryNodeId;
 
     // 3. Mark inCombat as true
     inCombat.value = true;
 
-    addLog('${playerName.value} enters the Breach equipped with ${playerWeaponName.value}!');
-    addLog('A howl echoes through the masonry! Three werewolves surround you.');
+    addLog('${playerName.value} enters the fray equipped with ${playerWeaponName.value}!');
+    addLog(encounter['description'] ?? 'Enemies surround you.');
     addLog('Combat initiated. Position: Back Line.');
   }
 
@@ -192,33 +200,25 @@ class CombatController extends GetxController {
       skillName = 'Blood Falchion Strike';
       staminaCost = 20;
       
-      // Scale damage with Strength and Main Hand Weapon power
-      // Formula: base (10) + strength * 0.8 + weapon bonus * 1.5
       double rawDmg = 10.0 + (playerStrength.value * 0.8) + (playerWeaponBonus.value * 1.5);
       damage = rawDmg.round();
       
-      // Variance
-      damage += _random.nextInt(6) - 3; // +/- 3 variance
+      damage += _random.nextInt(6) - 3;
       if (damage < 5) damage = 5;
       
-      // Lane bonus: Melee deals +50% from Front Line
       if (playerLane.value == 'front') {
         damage = (damage * 1.5).round();
       } else {
-        // Melee from Back Line deals 30% less damage
         damage = (damage * 0.7).round();
       }
     } else if (skillIndex == 2) {
       skillName = 'Hermetic Firebolt';
       staminaCost = 40;
       
-      // Scale magic damage with Intelligence
-      // Formula: base (15) + intelligence * 1.8
       double rawDmg = 15.0 + (playerIntelligence.value * 1.8);
       damage = rawDmg.round();
       
-      // Variance
-      damage += _random.nextInt(8) - 4; // +/- 4 variance
+      damage += _random.nextInt(8) - 4;
       if (damage < 8) damage = 8;
     }
 
@@ -227,11 +227,8 @@ class CombatController extends GetxController {
       return false;
     }
 
-    // Deduct costs
     playerAp.value -= 1;
     playerStamina.value -= staminaCost;
-
-    // Apply damage to target
     target.hp.value -= damage;
     showDamagePopup(target.id, '-$damage HP');
 
@@ -246,9 +243,8 @@ class CombatController extends GetxController {
     if (target.hp.value <= 0) {
       target.hp.value = 0;
       target.isDead.value = true;
-      addLog('The ${target.name} collapses into a heap of ashes and dark fur!');
+      addLog('The ${target.name} collapses!');
       
-      // Auto-target another living enemy
       final nextLiving = enemies.firstWhereOrNull((e) => !e.isDead.value);
       selectedEnemyId.value = nextLiving?.id;
     }
@@ -267,8 +263,6 @@ class CombatController extends GetxController {
     playerAp.value -= 1;
     isDefending.value = true;
     
-    // Regain stamina: scales with Constitution!
-    // Formula: base (30) + constitution * 1.5
     final staminaGain = 30 + (playerConstitution.value * 1.5).round();
     playerStamina.value = min(playerMaxStamina.value, playerStamina.value + staminaGain);
 
@@ -288,16 +282,15 @@ class CombatController extends GetxController {
       return;
     }
 
-    // Apply item effect
-    if (item.id == 'c1') { // Essence of Clarity: +50 Stamina
+    if (item.id == 'c1') {
       playerStamina.value = min(playerMaxStamina.value, playerStamina.value + 50);
       addLog('You inhale the Essence of Clarity. Stamina restored (+50).');
       showDamagePopup('player', '+50 STAM');
-    } else if (item.id == 'c3') { // Mandrake Root: +30 HP
+    } else if (item.id == 'c3') {
       playerHp.value = min(playerMaxHp.value, playerHp.value + 30);
       addLog('You consume the Mandrake Root. Wounds close (+30 HP).');
       showDamagePopup('player', '+30 HP');
-    } else if (item.id == 'c4') { // Corrupted Soul Gem: +40 HP, +40 Stamina, but -10 Sanity
+    } else if (item.id == 'c4') {
       playerHp.value = min(playerMaxHp.value, playerHp.value + 40);
       playerStamina.value = min(playerMaxStamina.value, playerStamina.value + 40);
       Get.find<PlayerState>().depleteSanity(10);
@@ -308,7 +301,6 @@ class CombatController extends GetxController {
       return;
     }
 
-    // Deduct from inventory
     invState.removeItem(item.id);
     if (inventoryItem.count > 1) {
       invState.addItem(ArtifactItem(
@@ -337,125 +329,141 @@ class CombatController extends GetxController {
   void endPlayerTurn() {
     if (!isPlayerTurn.value) return;
     isPlayerTurn.value = false;
-    addLog('Turn ended. The werewolves lunge through the darkness...');
+    addLog('Turn ended. Enemies prepare to strike...');
     
-    // Trigger Enemy Actions
     Future.delayed(const Duration(milliseconds: 1000), () {
       executeEnemyTurnSequence();
     });
   }
 
   Future<void> executeEnemyTurnSequence() async {
-    // Process each enemy sequentially
     for (var enemy in enemies) {
       if (enemy.isDead.value) continue;
       if (!inCombat.value) return;
 
-      // 1. Enemy AI Decision
-      // If the enemy is in the back line, they have a 50% chance to move forward, or 50% to cast a ranged attack
-      if (enemy.lane.value == 'back') {
-        if (_random.nextBool()) {
-          enemy.lane.value = 'front';
-          addLog('The ${enemy.name} crawls forward to the Front Line.');
-          await Future.delayed(const Duration(milliseconds: 1000));
-        }
+      // UTILITY AI LOGIC
+      // Available actions: 
+      // 1. Move Forward (if back)
+      // 2. Move Backward (if front)
+      // 3. Attack Player
+
+      double scoreAttack = enemy.aiProfile.aggression * 100.0;
+      double scoreFlee = 0.0;
+      double scoreAdvance = 0.0;
+
+      // If health is critically low, increase self preservation score
+      if (enemy.hp.value < (enemy.maxHp * 0.3)) {
+        scoreFlee = enemy.aiProfile.selfPreservation * 100.0;
+      }
+
+      // Range preferences
+      if (enemy.lane.value == 'back' && enemy.aiProfile.preferredRange == 0.0) {
+        scoreAdvance = 100.0; // Wants to get into melee
+      } else if (enemy.lane.value == 'front' && enemy.aiProfile.preferredRange > 0.0) {
+        scoreFlee += 50.0; // Wants to get back to range
+      }
+
+      // Add a little randomness so they aren't 100% predictable
+      scoreAttack += _random.nextInt(20);
+      scoreFlee += _random.nextInt(20);
+      scoreAdvance += _random.nextInt(20);
+
+      // Execute highest scoring action
+      if (scoreAdvance > scoreAttack && scoreAdvance > scoreFlee && enemy.lane.value == 'back') {
+        enemy.lane.value = 'front';
+        addLog('The ${enemy.name} advances to the Front Line.');
+        await Future.delayed(const Duration(milliseconds: 1000));
+      } else if (scoreFlee > scoreAttack && enemy.lane.value == 'front') {
+        enemy.lane.value = 'back';
+        addLog('The ${enemy.name} retreats to the Back Line.');
+        await Future.delayed(const Duration(milliseconds: 1000));
       } else {
-        // If in front line, they might move back if they are low on health
-        if (enemy.hp.value < 15 && _random.nextInt(3) == 0) {
-          enemy.lane.value = 'back';
-          addLog('The wounded ${enemy.name} retreats to the Back Line.');
-          await Future.delayed(const Duration(milliseconds: 1000));
+        // Attack
+        int baseDmg = enemy.strength + _random.nextInt(8) - 4;
+
+        if (playerLane.value == 'back' && enemy.lane.value == 'front') {
+          baseDmg = (baseDmg * 0.6).round();
         }
-      }
+        
+        if (enemy.lane.value == 'back') {
+          baseDmg = (baseDmg * 0.5).round();
+        }
 
-      // 2. Enemy Attacks Player
-      if (!inCombat.value) return;
-      int baseDmg = 10 + _random.nextInt(8); // 10 to 17
+        if (isDefending.value) {
+          baseDmg = (baseDmg * 0.5).round();
+        }
 
-      // Position calculations
-      // If player is in the back line, they take 40% less damage from melee enemies in the front
-      if (playerLane.value == 'back' && enemy.lane.value == 'front') {
-        baseDmg = (baseDmg * 0.6).round();
-      }
-      
-      // If enemy is in the back line, they deal 50% less melee damage
-      if (enemy.lane.value == 'back') {
-        baseDmg = (baseDmg * 0.5).round();
-      }
+        if (baseDmg < 1) baseDmg = 1;
 
-      // Defense guard calculation
-      if (isDefending.value) {
-        baseDmg = (baseDmg * 0.5).round();
-      }
-
-      playerHp.value -= baseDmg;
-      showDamagePopup('player', '-$baseDmg HP');
-      
-      if (isDefending.value) {
-        addLog('The ${enemy.name} swipes at your shield, dealing $baseDmg blocked damage.');
-      } else {
-        addLog('The ${enemy.name} bites you for $baseDmg physical damage.');
+        playerHp.value -= baseDmg;
+        showDamagePopup('player', '-$baseDmg HP');
+        
+        if (isDefending.value) {
+          addLog('The ${enemy.name} strikes your shield for $baseDmg damage.');
+        } else {
+          addLog('The ${enemy.name} hits you for $baseDmg physical damage.');
+        }
       }
 
       checkVictoryOrDefeat();
       await Future.delayed(const Duration(milliseconds: 1200));
     }
 
-    // Hand turn back to player
     if (inCombat.value) {
       isPlayerTurn.value = true;
       playerAp.value = 3;
       hasMovedThisTurn.value = false;
       isDefending.value = false;
 
-      // Passive stamina drip
       final staminaDrip = 15;
       playerStamina.value = min(playerMaxStamina.value, playerStamina.value + staminaDrip);
 
-      addLog('Your turn begins. You catch your breath (+15 Stamina).');
+      addLog('Your turn begins. (+15 Stamina).');
       showDamagePopup('player', '+$staminaDrip STAM');
     }
   }
 
   void checkVictoryOrDefeat() {
-    // Check victory
     bool allDead = enemies.every((e) => e.isDead.value);
     if (allDead) {
       inCombat.value = false;
-      addLog('VICTORY! You have vanquished the lupine monstrosities.');
+      addLog('VICTORY! You have vanquished the enemies.');
       
-      // Sync health back to PlayerState and reward XP
       final playerState = Get.find<PlayerState>();
       playerState.vitals.value.currentHp = playerHp.value;
       playerState.vitals.value.currentStamina = playerStamina.value;
       playerState.vitals.refresh();
-      playerState.gainXp(50); // Reward 50 XP
+      playerState.gainXp(50);
       
       Get.snackbar(
         'COMBAT VICTORY',
-        'Vanquished the werewolves! Gained 50 XP.',
+        'Enemies defeated! Gained 50 XP.',
         backgroundColor: const Color(0xFF162516),
         colorText: const Color(0xFFD4CFC7),
         borderRadius: 0,
         margin: const EdgeInsets.all(12),
       );
+
+      // Route to aftermath node if one was provided
+      if (currentVictoryNodeId.value != null) {
+        Get.find<StoryEngine>().goToNode(currentVictoryNodeId.value!);
+      }
+      
       return;
     }
 
-    // Check defeat
     if (playerHp.value <= 0) {
       playerHp.value = 0;
       inCombat.value = false;
-      addLog('DEFEAT... You fell to the beasts of the Vichally Undercroft.');
+      addLog('DEFEAT... You fell in battle.');
       
-      // Sync back only to avoid total death loop, or keep 1 hp
       final playerState = Get.find<PlayerState>();
-      playerState.vitals.value.currentHp = 1; // revive at 1 HP
+      playerState.vitals.value.currentHp = 1;
       playerState.vitals.refresh();
 
       Get.snackbar(
         'YOU WERE SLAIN',
-        'Defeated in the subterranean dark.',
+        'Defeated in combat.',
         backgroundColor: const Color(0xFF330B0B),
         colorText: const Color(0xFFD4CFC7),
         borderRadius: 0,

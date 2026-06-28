@@ -18,4 +18,7 @@ class VitruvianColors {
 
   /// Subtle Etched Border color (1px hairline)
   static const Color etchedHairline = Color(0xFF2A2825);
+
+  /// Gold Leaf (`#C0A070`) - Loot callouts and precious relics
+  static const Color goldLeaf = Color(0xFFC0A070);
 }

@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../game/story_engine.dart';
 import 'combat_state.dart';
 import 'inventory_state.dart';
 import 'navigation_state.dart';
@@ -17,6 +18,7 @@ class GameController extends GetxController {
   late final NavigationState navigationState;
   late final SettingsState settingsState;
   late final CombatController combatController;
+  late final StoryEngine storyEngine;
 
   @override
   void onInit() {
@@ -26,6 +28,7 @@ class GameController extends GetxController {
     navigationState = Get.put(NavigationState());
     settingsState = Get.put(SettingsState());
     combatController = Get.put(CombatController());
+    storyEngine = Get.put(StoryEngine());
   }
 
   void selectHubTab(MainHubTab tab) {

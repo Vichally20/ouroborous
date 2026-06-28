@@ -1,0 +1,170 @@
+{
+  "id": "chapter_1",
+  "title": "THE UNDERCROFT",
+  "startNodeId": "crypt_entrance",
+  "nodes": {
+    "crypt_entrance": {
+      "id": "crypt_entrance",
+      "title": "THE UNDERCROFT",
+      "paragraphs": [
+        "The heavy oak door groans under your weight, revealing a chamber thick with the scent of damp earth and dried blood. Motes of dust dance in the pale light filtering through a fractured grating high above.",
+        "A monolithic altar of black stone dominates the center of the room, its surface stained with the desperate prayers of those who came before. The air here feels heavy, oppressive, as if the very walls are pressing inward.",
+        "From the deep shadows beyond the altar, a low, rhythmic clicking begins to echo. It sounds like skeletal joints snapping into formation."
+      ],
+      "lootCallout": "Loot Uncovered: Rusted Falchion",
+      "ambientNote": "A faint scratching reverberates from behind the eastern wall.",
+      "choices": [
+        {
+          "id": "choice_breach",
+          "numeral": "I.",
+          "text": "Enter the breach",
+          "triggerEvent": "combat_crypt_werewolves",
+          "victoryNodeId": "post_combat_werewolves"
+        },
+        {
+          "id": "choice_shadows",
+          "numeral": "II.",
+          "text": "Retreat to the shadows",
+          "nextNodeId": "alcove_recess"
+        },
+        {
+          "id": "choice_altar",
+          "numeral": "III.",
+          "text": "Search the altar (Requires: 15 Insight)",
+          "requiredAttribute": "INSIGHT",
+          "attributeRequirement": 15,
+          "nextNodeId": "sacrificial_archive"
+        }
+      ]
+    },
+    "alcove_recess": {
+      "id": "alcove_recess",
+      "title": "THE ALCOVE RECESS",
+      "paragraphs": [
+        "You press your spine against the damp masonry, melting into the shadows as a towering anatomical monstrosity shambles past. Its limbs are wrong — too many joints, bending in directions that defy the mortal frame.",
+        "The creature pauses, its malformed skull tilting as if tasting the air. For a breathless moment the only sound is your heartbeat hammering against your ribs.",
+        "Then it moves on, dragging one elongated claw along the stone with a shriek that sets your teeth on edge. A passage opens to the west — an unlit corridor you hadn't noticed before."
+      ],
+      "ambientNote": "The clicking has stopped. An unnatural silence blankets the chamber.",
+      "choices": [
+        {
+          "id": "choice_follow_corridor",
+          "numeral": "I.",
+          "text": "Follow the unlit western corridor",
+          "nextNodeId": "western_passage"
+        },
+        {
+          "id": "choice_back_altar",
+          "numeral": "II.",
+          "text": "Return to the altar room",
+          "nextNodeId": "crypt_entrance"
+        }
+      ]
+    },
+    "sacrificial_archive": {
+      "id": "sacrificial_archive",
+      "title": "THE SACRIFICIAL ARCHIVE",
+      "paragraphs": [
+        "Your heightened hermetic insight reveals a hidden catch beneath the black stone. A drawer slides out containing ancient manuscripts — vellum pages covered in dense anatomical diagrams and alchemical formulae.",
+        "Among the documents is a sealed letter bearing the sigil of the Vichally Amphitheater. The wax is still warm to the touch, as though placed here moments ago.",
+        "A final page catches your attention: a crude map sketching the layout of tunnels beneath this crypt, converging on a chamber marked only with a single ouroboros symbol."
+      ],
+      "lootCallout": "Acquired: Sealed Amphitheater Letter + Crypt Tunnel Map",
+      "choices": [
+        {
+          "id": "choice_read_letter",
+          "numeral": "I.",
+          "text": "Break the seal and read the letter",
+          "nextNodeId": "letter_contents"
+        },
+        {
+          "id": "choice_follow_map",
+          "numeral": "II.",
+          "text": "Follow the tunnel map deeper",
+          "nextNodeId": "western_passage"
+        },
+        {
+          "id": "choice_leave_archive",
+          "numeral": "III.",
+          "text": "Take the documents and enter the breach",
+          "triggerEvent": "combat_crypt_werewolves",
+          "victoryNodeId": "post_combat_werewolves"
+        }
+      ]
+    },
+    "letter_contents": {
+      "id": "letter_contents",
+      "title": "THE AMPHITHEATER CORRESPONDENCE",
+      "paragraphs": [
+        "The wax crumbles beneath your thumb. The letter is written in a precise, clinical hand:",
+        "\"To the Anatomist-General, Third Chair — The specimens from the Northern Breach have exceeded all projections. Reconstitution rates approach 94%. The Ouroboros Protocol must advance to Phase II before the Equinox. Dispose of this correspondence upon reading. — V.\"",
+        "You feel the weight of those words settling like cold iron in your gut. Whatever the Ouroboros Protocol is, it is not a thing of healing."
+      ],
+      "ambientNote": "The letter dissolves into ash moments after you finish reading, as if enchanted to destroy itself.",
+      "choices": [
+        {
+          "id": "choice_press_deeper",
+          "numeral": "I.",
+          "text": "Press deeper into the tunnels",
+          "nextNodeId": "western_passage"
+        },
+        {
+          "id": "choice_confront_breach",
+          "numeral": "II.",
+          "text": "Steel yourself and enter the breach",
+          "triggerEvent": "combat_crypt_werewolves",
+          "victoryNodeId": "post_combat_werewolves"
+        }
+      ]
+    },
+    "western_passage": {
+      "id": "western_passage",
+      "title": "THE WESTERN DESCENT",
+      "paragraphs": [
+        "The corridor slopes downward at a disquieting angle, each step carrying you deeper beneath the earth. The walls here are older — rough-hewn stone giving way to natural cave formations slick with condensation.",
+        "Bioluminescent fungi cling to the ceiling in clusters, casting everything in a sickly green pallor. The air tastes of copper and something else — something organic and wrong.",
+        "The passage opens into a vast underground cistern. Across the stagnant water, you can see torchlight and hear the low murmur of voices chanting in an unfamiliar tongue."
+      ],
+      "ambientNote": "The chanting rises and falls in a rhythmic cadence. It sounds liturgical — a prayer or an invocation.",
+      "choices": [
+        {
+          "id": "choice_wade_across",
+          "numeral": "I.",
+          "text": "Wade through the cistern toward the voices",
+          "nextChapterId": "chapter_2"
+        },
+        {
+          "id": "choice_skirt_edge",
+          "numeral": "II.",
+          "text": "Skirt the edge to find a dry crossing",
+          "nextChapterId": "chapter_2"
+        },
+        {
+          "id": "choice_turn_back",
+          "numeral": "III.",
+          "text": "Turn back to the altar room",
+          "nextNodeId": "crypt_entrance"
+        }
+      ]
+    },
+    "post_combat_werewolves": {
+      "id": "post_combat_werewolves",
+      "title": "THE AFTERMATH",
+      "paragraphs": [
+        "The crypt falls silent once more, save for the ragged sound of your own breathing. The monstrous lupine bodies dissolve rapidly, their unnatural flesh sublimating into a noxious black smoke that quickly disperses through the grating above.",
+        "Where the alpha fell, a tarnished silver medallion remains, glinting in the pale light.",
+        "The path deeper into the Undercroft now lies uncontested."
+      ],
+      "lootCallout": "Acquired: Lunar Medallion",
+      "ambientNote": "The scent of ozone and burnt hair lingers heavily.",
+      "choices": [
+        {
+          "id": "choice_continue_descent",
+          "numeral": "I.",
+          "text": "Descend into the western passage",
+          "nextNodeId": "western_passage"
+        }
+      ]
+    }
+  }
+}

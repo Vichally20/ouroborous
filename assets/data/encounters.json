@@ -1,0 +1,50 @@
+{
+  "combat_crypt_werewolves": {
+    "title": "Breach Ambuscade",
+    "description": "A howl echoes through the masonry! Werewolves surround you.",
+    "enemies": [
+      {
+        "id": "feral_1",
+        "bestiary_id": "werewolf_feral",
+        "lane": "front"
+      },
+      {
+        "id": "shadow_1",
+        "bestiary_id": "werewolf_shadow",
+        "lane": "back"
+      },
+      {
+        "id": "alpha_1",
+        "bestiary_id": "werewolf_alpha",
+        "lane": "back"
+      }
+    ]
+  },
+  "combat_cultists_01": {
+    "title": "Cistern Disruption",
+    "description": "The cultists break their chant and draw jagged daggers!",
+    "enemies": [
+      {
+        "id": "acolyte_1",
+        "bestiary_id": "cultist_acolyte",
+        "lane": "front"
+      },
+      {
+        "id": "acolyte_2",
+        "bestiary_id": "cultist_acolyte",
+        "lane": "back"
+      }
+    ]
+  },
+  "combat_flesh_construct": {
+    "title": "The Awakening",
+    "description": "The massive construct hauls itself out of the freezing water.",
+    "enemies": [
+      {
+        "id": "construct_boss",
+        "bestiary_id": "flesh_construct",
+        "lane": "front"
+      }
+    ]
+  }
+}

@@ -68,7 +68,7 @@ class ManuscriptMainScaffold extends StatelessWidget {
           break;
         case MainHubTab.game:
           currentScreen = const GameHubScreen();
-          appBarTitle = currentNode.title;
+          appBarTitle = navState.isShowingMap.value ? currentNode.title : 'VITRUVIAN SHADOW';
           actions = [
             IconButton(
               icon: Icon(

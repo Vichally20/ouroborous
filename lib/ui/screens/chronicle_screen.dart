@@ -2,160 +2,108 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
-import '../../states/combat_state.dart';
+import '../../game/story_engine.dart';
+import '../../models/story_models.dart';
 import '../../states/player_state.dart';
 import '../widgets/etched_container.dart';
 
-class ChronicleChoice {
-  final String numeral;
-  final String text;
-  final String? requiredAttribute;
-  final int? attributeRequirement;
-  final String nextEventTitle;
-  final String nextEventBody;
-
-  const ChronicleChoice({
-    required this.numeral,
-    required this.text,
-    this.requiredAttribute,
-    this.attributeRequirement,
-    required this.nextEventTitle,
-    required this.nextEventBody,
-  });
-}
-
-class ChronicleScreen extends StatefulWidget {
+class ChronicleScreen extends StatelessWidget {
   const ChronicleScreen({super.key});
 
   @override
-  State<ChronicleScreen> createState() => _ChronicleScreenState();
-}
-
-class _ChronicleScreenState extends State<ChronicleScreen> {
-  final List<String> paragraphs = [
-    'The heavy oak door groans under your weight, revealing a chamber thick with the scent of damp earth and dried blood. Motes of dust dance in the pale light filtering through a fractured grating high above.',
-    'A monolithic altar of black stone dominates the center of the room, its surface stained with the desperate prayers of those who came before. The air here feels heavy, oppressive, as if the very walls are pressing inward.',
-    'From the deep shadows beyond the altar, a low, rhythmic clicking begins to echo. It sounds like skeletal joints snapping into formation.',
-  ];
-
-  final List<ChronicleChoice> currentChoices = [
-    const ChronicleChoice(
-      numeral: 'I.',
-      text: 'Enter the breach',
-      nextEventTitle: 'THE BREACHED CRYPT',
-      nextEventBody:
-          'Drawing your weapon, you step past the monolithic altar into the darkness beyond. The clicking ceases immediately.',
-    ),
-    const ChronicleChoice(
-      numeral: 'II.',
-      text: 'Retreat to the shadows',
-      nextEventTitle: 'THE ALCOVE RECESS',
-      nextEventBody:
-          'You press your spine against the damp masonry, melting into the shadows as a towering anatomical monstrosity shambles past.',
-    ),
-    const ChronicleChoice(
-      numeral: 'III.',
-      text: 'Search the altar (Requires: 15 Insight)',
-      requiredAttribute: 'INSIGHT',
-      attributeRequirement: 15,
-      nextEventTitle: 'THE SACRIFICIAL ARCHIVE',
-      nextEventBody:
-          'Your heightened hermetic insight reveals a hidden catch beneath the black stone. A drawer slides out containing ancient manuscripts.',
-    ),
-  ];
-
-  void _makeChoice(ChronicleChoice choice, PlayerState playerState) {
-    if (choice.requiredAttribute != null) {
-      final canPass = playerState.attributes.value
-          .checkAttribute(choice.requiredAttribute!, choice.attributeRequirement!);
-      if (!canPass) {
-        Get.snackbar(
-          'INSUFFICIENT INSIGHT',
-          'This action requires at least ${choice.attributeRequirement} Insight.',
-          backgroundColor: VitruvianColors.rustBlood,
-          colorText: Colors.white,
-          borderRadius: 0,
-          margin: const EdgeInsets.all(12),
-        );
-        return;
-      }
-    }
-
-    if (choice.numeral == 'I.') {
-      Get.find<CombatController>().startCombat();
-      return;
-    }
-
-    Get.snackbar(
-      'CHRONICLE UPDATED',
-      'Traversed to: ${choice.nextEventTitle}',
-      backgroundColor: const Color(0xFF201B15),
-      colorText: VitruvianColors.agedBone,
-      borderRadius: 0,
-      margin: const EdgeInsets.all(12),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final playerState = Get.find<PlayerState>();
+    final storyEngine = Get.find<StoryEngine>();
 
     return Obx(() {
-      final attr = playerState.attributes.value;
+      // Loading state
+      if (storyEngine.isLoading.value) {
+        return const Center(
+          child: CircularProgressIndicator(color: VitruvianColors.sepiaUmber),
+        );
+      }
+
+      final node = storyEngine.currentNode.value;
+
+      // No node loaded (error / empty state)
+      if (node == null) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.menu_book_outlined,
+                  size: 64, color: VitruvianColors.sepiaUmber),
+              const SizedBox(height: 16),
+              Text(
+                'THE CHRONICLE AWAITS...',
+                style: VitruvianTypography.serifTitle(
+                  fontSize: 18,
+                  color: VitruvianColors.agedBone,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
 
       return Column(
         children: [
           // Scrollable Narrative Manuscript Body
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Chapter / Node title
                   Text(
-                    paragraphs[0],
-                    style: VitruvianTypography.serifBody(
-                      fontSize: 16,
-                      height: 1.65,
-                      color: const Color(0xFFDCD4C8),
-                    ),
+                    node.title,
+                    style: VitruvianTypography.serifTitle(
+                      fontSize: 13,
+                      color: const Color(0xFF6A5E52),
+                    ).copyWith(letterSpacing: 2.0),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
 
-                  Text(
-                    paragraphs[1],
-                    style: VitruvianTypography.serifBody(
-                      fontSize: 16,
-                      height: 1.65,
-                      color: const Color(0xFFDCD4C8),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+                  // Dynamic paragraphs
+                  ...node.paragraphs.map((paragraph) => Padding(
+                        padding: const EdgeInsets.only(bottom: 20.0),
+                        child: Text(
+                          paragraph,
+                          style: VitruvianTypography.serifBody(
+                            fontSize: 16,
+                            height: 1.65,
+                            color: const Color(0xFFDCD4C8),
+                          ),
+                        ),
+                      )),
 
-                  // Loot Uncovered Callout Box
-                  EtchedContainer(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    borderColor: const Color(0xFF383024),
-                    backgroundColor: const Color(0xFF0C0A08),
-                    child: Text(
-                      'Loot Uncovered: Rusted Falchion',
-                      style: VitruvianTypography.monospaceData(
+                  // Ambient note (if present)
+                  if (node.ambientNote != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      node.ambientNote!,
+                      style: VitruvianTypography.serifBody(
                         fontSize: 13,
-                        color: const Color(0xFFC0A070),
-                      ),
+                        color: const Color(0xFF5A5248),
+                      ).copyWith(fontStyle: FontStyle.italic),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+                  ],
 
-                  Text(
-                    paragraphs[2],
-                    style: VitruvianTypography.serifBody(
-                      fontSize: 16,
-                      height: 1.65,
-                      color: const Color(0xFFDCD4C8),
+                  // Loot callout (if present)
+                  if (node.lootCallout != null) ...[
+                    _LootCalloutWidget(
+                      nodeId: node.id,
+                      lootText: node.lootCallout!,
+                      storyEngine: storyEngine,
                     ),
-                  ),
-                  const SizedBox(height: 40),
+                    const SizedBox(height: 24),
+                  ],
+
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -166,49 +114,15 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
               color: Color(0xFF0E0C0A),
-              border: Border(top: BorderSide(color: Color(0xFF262018), width: 1.0)),
+              border:
+                  Border(top: BorderSide(color: Color(0xFF262018), width: 1.0)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: currentChoices.map((choice) {
-                bool isGated = choice.requiredAttribute != null;
-                bool canPass = true;
-                if (isGated) {
-                  canPass = attr.checkAttribute(
-                      choice.requiredAttribute!, choice.attributeRequirement!);
-                }
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10.0),
-                  child: InkWell(
-                    onTap: () => _makeChoice(choice, playerState),
-                    child: EtchedContainer(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      borderColor: canPass ? const Color(0xFF332E26) : const Color(0xFF1C1A16),
-                      backgroundColor: canPass ? const Color(0xFF161412) : const Color(0xFF100E0C),
-                      child: Row(
-                        children: [
-                          Text(
-                            choice.numeral,
-                            style: VitruvianTypography.serifTitle(
-                              fontSize: 16,
-                              color: canPass ? const Color(0xFF888078) : const Color(0xFF44403C),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              choice.text,
-                              style: VitruvianTypography.serifBody(
-                                fontSize: 16,
-                                color: canPass ? const Color(0xFFE4DCD0) : const Color(0xFF55504C),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+              children: node.choices.map((choice) {
+                return _ChoiceButton(
+                  choice: choice,
+                  storyEngine: storyEngine,
                 );
               }).toList(),
             ),
@@ -216,5 +130,226 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
         ],
       );
     });
+  }
+}
+
+class _ChoiceButton extends StatelessWidget {
+  final Choice choice;
+  final StoryEngine storyEngine;
+
+  const _ChoiceButton({
+    required this.choice,
+    required this.storyEngine,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isGated = choice.requiredAttribute != null;
+    final bool canPass = storyEngine.canPassGate(choice);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10.0),
+      child: InkWell(
+        onTap: () {
+          if (isGated && !canPass) {
+            final playerState = Get.find<PlayerState>();
+            final attrName = choice.requiredAttribute ?? 'attribute';
+            final currentVal = playerState.attributes.value
+                .getAttributeValue(attrName);
+            Get.snackbar(
+              'INSUFFICIENT ${attrName.toUpperCase()}',
+              'This action requires at least ${choice.attributeRequirement} $attrName. Current: $currentVal.',
+              backgroundColor: VitruvianColors.rustBlood,
+              colorText: Colors.white,
+              borderRadius: 0,
+              margin: const EdgeInsets.all(12),
+            );
+            return;
+          }
+          storyEngine.makeChoice(choice);
+        },
+        child: EtchedContainer(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          borderColor:
+              canPass ? const Color(0xFF332E26) : const Color(0xFF1C1A16),
+          backgroundColor:
+              canPass ? const Color(0xFF161412) : const Color(0xFF100E0C),
+          child: Row(
+            children: [
+              if (choice.numeral != null) ...[
+                Text(
+                  choice.numeral!,
+                  style: VitruvianTypography.serifTitle(
+                    fontSize: 16,
+                    color: canPass
+                        ? const Color(0xFF888078)
+                        : const Color(0xFF44403C),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Text(
+                  choice.text,
+                  style: VitruvianTypography.serifBody(
+                    fontSize: 16,
+                    color: canPass
+                        ? const Color(0xFFE4DCD0)
+                        : const Color(0xFF55504C),
+                  ),
+                ),
+              ),
+              if (isGated && !canPass)
+                const Icon(Icons.lock_outline,
+                    size: 16, color: Color(0xFF44403C)),
+              if (choice.nextChapterId != null)
+                const Icon(Icons.arrow_forward,
+                    size: 16, color: Color(0xFF6A5E52)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LootCalloutWidget extends StatefulWidget {
+  final String nodeId;
+  final String lootText;
+  final StoryEngine storyEngine;
+
+  const _LootCalloutWidget({
+    required this.nodeId,
+    required this.lootText,
+    required this.storyEngine,
+  });
+
+  @override
+  State<_LootCalloutWidget> createState() => _LootCalloutWidgetState();
+}
+
+class _LootCalloutWidgetState extends State<_LootCalloutWidget> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final isClaimed = widget.storyEngine.claimedLootNodeIds.contains(widget.nodeId);
+
+      if (isClaimed) {
+        return EtchedContainer(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          borderColor: const Color(0xFF242018),
+          backgroundColor: const Color(0xFF080706),
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle_outline, color: Color(0xFF6A5E52), size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  widget.lootText,
+                  style: VitruvianTypography.monospaceData(
+                    fontSize: 13,
+                    color: const Color(0xFF6A5E52),
+                  ).copyWith(decoration: TextDecoration.lineThrough),
+                ),
+              ),
+              Text(
+                'CLAIMED',
+                style: VitruvianTypography.monospaceData(
+                  fontSize: 11,
+                  color: const Color(0xFF6A5E52),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: InkWell(
+          onTap: () => _pickUp(),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              color: _isHovered ? const Color(0xFF1A1610) : const Color(0xFF0C0A08),
+              border: Border.all(
+                color: _isHovered ? VitruvianColors.goldLeaf : const Color(0xFF383024),
+                width: 1.0,
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.inventory_2_outlined,
+                  color: _isHovered ? VitruvianColors.goldLeaf : const Color(0xFFC0A070),
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.lootText,
+                    style: VitruvianTypography.monospaceData(
+                      fontSize: 13,
+                      color: _isHovered ? VitruvianColors.goldLeaf : const Color(0xFFC0A070),
+                    ),
+                  ),
+                ),
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: _isHovered ? 1.0 : 0.7,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _isHovered ? VitruvianColors.goldLeaf : const Color(0xFF262018),
+                      border: Border.all(color: VitruvianColors.goldLeaf),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.pan_tool_alt_outlined,
+                          size: 13,
+                          color: _isHovered ? const Color(0xFF0C0A08) : VitruvianColors.goldLeaf,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'PICK UP',
+                          style: VitruvianTypography.monospaceData(
+                            fontSize: 11,
+                            color: _isHovered ? const Color(0xFF0C0A08) : VitruvianColors.goldLeaf,
+                          ).copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  void _pickUp() {
+    widget.storyEngine.claimLoot(widget.nodeId, widget.lootText);
+    String itemName = widget.lootText
+        .replaceAll('Loot Uncovered:', '')
+        .replaceAll('Acquired:', '')
+        .trim();
+    Get.snackbar(
+      'LOOT ACQUIRED',
+      '$itemName has been added to your inventory.',
+      backgroundColor: VitruvianColors.goldLeaf,
+      colorText: const Color(0xFF0C0A08),
+      icon: const Icon(Icons.check_circle, color: Color(0xFF0C0A08)),
+      duration: const Duration(seconds: 3),
+      borderRadius: 0,
+      margin: const EdgeInsets.all(12),
+    );
   }
 }

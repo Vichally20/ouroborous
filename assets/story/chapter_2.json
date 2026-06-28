@@ -1,0 +1,150 @@
+{
+  "id": "chapter_2",
+  "title": "THE CISTERN CONGREGATION",
+  "startNodeId": "cistern_approach",
+  "nodes": {
+    "cistern_approach": {
+      "id": "cistern_approach",
+      "title": "THE CISTERN CONGREGATION",
+      "paragraphs": [
+        "The torchlight resolves into a circle of hooded figures standing knee-deep in the stagnant water. Their robes are the deep crimson of arterial blood, each one embroidered with the coiling ouroboros sigil you saw on the map.",
+        "At the center of their circle stands a stone plinth rising from the water. Upon it rests a glass vessel containing something that pulses with a faint, rhythmic glow — like a heartbeat made visible.",
+        "None of them have noticed you yet. The chanting continues, growing louder, more fervent. Whatever ritual they are performing, it is approaching its climax."
+      ],
+      "ambientNote": "The water around the plinth has begun to bubble. The temperature is rising.",
+      "choices": [
+        {
+          "id": "choice_disrupt",
+          "numeral": "I.",
+          "text": "Disrupt the ritual by force",
+          "triggerEvent": "combat_cultists_01",
+          "victoryNodeId": "post_combat_cultists"
+        },
+        {
+          "id": "choice_observe",
+          "numeral": "II.",
+          "text": "Observe from the shadows — let it play out",
+          "nextNodeId": "ritual_completion"
+        },
+        {
+          "id": "choice_steal_vessel",
+          "numeral": "III.",
+          "text": "Attempt to steal the vessel (Requires: 14 Dexterity)",
+          "requiredAttribute": "DEXTERITY",
+          "attributeRequirement": 14,
+          "nextNodeId": "vessel_theft"
+        }
+      ]
+    },
+    "ritual_completion": {
+      "id": "ritual_completion",
+      "title": "THE AWAKENING",
+      "paragraphs": [
+        "The chanting reaches a crescendo. The glass vessel shatters, releasing a column of searing crimson light that punches through the ceiling rock like a blade through parchment.",
+        "The hooded figures collapse as one, their bodies convulsing before going utterly still. In the silence that follows, something stirs in the water — something large, rising from beneath the plinth.",
+        "An anatomical horror hauls itself upright. It is stitched together from the parts of many bodies, its eyes burning with the same crimson light that consumed the vessel. It turns its gaze toward you."
+      ],
+      "ambientNote": "The water has gone ice-cold. Frost is forming on your armour.",
+      "choices": [
+        {
+          "id": "choice_fight_horror",
+          "numeral": "I.",
+          "text": "Stand your ground and fight",
+          "triggerEvent": "combat_flesh_construct",
+          "victoryNodeId": "post_combat_flesh_construct"
+        },
+        {
+          "id": "choice_flee_tunnels",
+          "numeral": "II.",
+          "text": "Flee through the northern tunnel",
+          "nextNodeId": "northern_escape"
+        }
+      ]
+    },
+    "post_combat_cultists": {
+      "id": "post_combat_cultists",
+      "title": "THE SILENCED RITUAL",
+      "paragraphs": [
+        "The acolyte's dying breath rattles in their throat, and the chanting ceases entirely. The dark waters of the cistern grow still.",
+        "On the plinth, the glass vessel continues its steady, rhythmic pulsing. Whatever entity or organ lies within, it is now unguarded.",
+        "You wipe the blood from your blade and approach the plinth."
+      ],
+      "lootCallout": "Acquired: Jagged Ritual Dagger",
+      "choices": [
+        {
+          "id": "choice_inspect_plinth",
+          "numeral": "I.",
+          "text": "Inspect the pulsating vessel",
+          "nextNodeId": "ritual_completion"
+        }
+      ]
+    },
+    "vessel_theft": {
+      "id": "vessel_theft",
+      "title": "THE STOLEN HEART",
+      "paragraphs": [
+        "Moving with the precision of a shadow, you slip between the chanting figures. Your fingers close around the glass vessel just as the final syllable of their invocation hangs in the air.",
+        "The vessel is warm to the touch — almost alive. Inside, the pulsing glow intensifies at your grip, as if responding to your presence. The ouroboros sigil etched into the glass begins to rotate.",
+        "A cry goes up from the cultists. They have seen you. But you have what they wanted, and the nearest exit is twenty paces to the north."
+      ],
+      "lootCallout": "Acquired: The Pulsing Vessel (Quest Item)",
+      "choices": [
+        {
+          "id": "choice_run_north",
+          "numeral": "I.",
+          "text": "Sprint for the northern passage",
+          "nextNodeId": "northern_escape"
+        },
+        {
+          "id": "choice_stand_fight_cultists",
+          "numeral": "II.",
+          "text": "Turn and fight the disoriented cultists",
+          "triggerEvent": "combat_cultists_01"
+        }
+      ]
+    },
+    "northern_escape": {
+      "id": "northern_escape",
+      "title": "THE SCRIPTORIUM SURFACE",
+      "paragraphs": [
+        "The tunnel ascends sharply, roughly carved steps spiralling upward through layers of ancient stonework. Your lungs burn as you climb, but the sounds of pursuit fade behind you.",
+        "A rusted iron grate gives way under your shoulder. You tumble out into cold night air and find yourself in the courtyard of the Vichally Amphitheater Scriptorium — the great anatomical theater of the capital.",
+        "The stars wheel overhead. Somewhere below, in the tunnels you just escaped, the ouroboros sigil burns in the darkness. Whatever Phase II of their protocol entails, you are now at its center."
+      ],
+      "ambientNote": "Dawn is two hours away. The Scriptorium's windows glow with candlelight — someone is still awake inside.",
+      "choices": [
+        {
+          "id": "choice_enter_scriptorium",
+          "numeral": "I.",
+          "text": "Enter the Scriptorium to seek answers",
+          "nextChapterId": "chapter_3"
+        },
+        {
+          "id": "choice_rest_courtyard",
+          "numeral": "II.",
+          "text": "Rest in the courtyard until dawn",
+          "nextChapterId": "chapter_3"
+        }
+      ]
+    },
+    "post_combat_flesh_construct": {
+      "id": "post_combat_flesh_construct",
+      "title": "A QUIET GRAVE",
+      "paragraphs": [
+        "With a final, deafening crash, the amalgamated horror collapses into the frigid cistern waters, sending up a geyser of icy spray. The crimson light flickering in its mismatched eyes sputters and dies.",
+        "You lean against the damp stone, gasping for air. The immediate threat has been neutralized, but the implications of this creature's existence—and the letter you found—are terrifying.",
+        "As the beast sinks beneath the surface, something floats free from its chest cavity. A crystalline phylactery, perfectly unblemished."
+      ],
+      "lootCallout": "Acquired: Crimson Phylactery",
+      "ambientNote": "The air begins to warm slightly. The unnatural chill is fading.",
+      "choices": [
+        {
+          "id": "choice_exit_cistern",
+          "numeral": "I.",
+          "text": "Take the phylactery and leave the cistern",
+          "nextNodeId": "northern_escape"
+        }
+      ]
+    }
+  }
+}
