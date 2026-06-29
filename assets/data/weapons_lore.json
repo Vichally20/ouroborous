@@ -1,0 +1,104 @@
+{
+  "metals": [
+    {
+      "id": "aged_iron",
+      "name": "Aged Iron (The Mortal Bone)",
+      "description": "Standard iron mined from deep within the earth. Heavy, rustic, and resilient.",
+      "lore": "Considered the bone of the earth, Aged Iron is highly receptive to defensive blessings. It absorbs impact exceptionally well, making it the perfect metal for parrying shields and heavy swords.",
+      "synergistic_perks": ["parry"],
+      "bonus_attribute": "Constitution"
+    },
+    {
+      "id": "crucible_steel",
+      "name": "Crucible Steel (The Refined Soul)",
+      "description": "High-carbon steel smelted in specialized clay crucibles using crushed bone ash.",
+      "lore": "Crucible Steel is exceptionally sharp and holds its edge under extreme conditions. It vibrates with high-frequency energy, allowing it to slip through gaps in plate armor to expose the soft flesh beneath.",
+      "synergistic_perks": ["expose_weakness", "parry"],
+      "bonus_attribute": "Dexterity"
+    },
+    {
+      "id": "quicksilver_bronze",
+      "name": "Quicksilver Bronze (The Mercurial Flow)",
+      "description": "An alchemical alloy of copper, tin, and purified quicksilver.",
+      "lore": "Lighter than standard steel, Quicksilver Bronze feels almost weightless in the hand. It has a mercurial property that responds to the wielder's intent, accelerating strikes and assisting with rapid anatomical target adjustments.",
+      "synergistic_perks": ["lock_on"],
+      "bonus_attribute": "Speed"
+    },
+    {
+      "id": "blood_iron",
+      "name": "Blood-Iron (The Sanguine Ore)",
+      "description": "A dark, reddish iron ore mined from soils saturated with ancient blood.",
+      "lore": "Naturally porous and warm to the touch, Blood-Iron is thirsty. It draws in the blood of those it cuts, transferring a portion of the victim's vitality back into the wielder. It makes lacerations difficult to clot, ensuring deep, continuous bleeding.",
+      "synergistic_perks": ["bleed"],
+      "bonus_attribute": "Strength"
+    },
+    {
+      "id": "meteoric_vitrite",
+      "name": "Meteoric Vitrite (The Star-Glass)",
+      "description": "A rare, crystalline obsidian-like substance harvested from fallen meteors.",
+      "lore": "Brittle but incredibly sharp, Meteoric Vitrite cuts through physical matter at a molecular level. It is highly receptive to moon-blessings and is the weapon of choice for executing wounded foes instantly.",
+      "synergistic_perks": ["execute", "lock_on"],
+      "bonus_attribute": "Intelligence"
+    }
+  ],
+  "god_blessings": [
+    {
+      "id": "blessing_sol_vitruvius",
+      "name": "Sol-Vitruvius's Aegis",
+      "effect": "Defensive Fortitude & Kinetic Reflection",
+      "description": "Reduces the stamina cost of parrying by 30%. On a successful parry, reflects a shockwave that deals physical damage equal to the enemy's strength.",
+      "lore": "The Prime Architect demands symmetry; when you are struck, the blow must be returned in perfect mathematical balance."
+    },
+    {
+      "id": "blessing_anima_ouroboros",
+      "name": "Anima-Ouroboros's Hunger",
+      "effect": "Sanguine Syphon & Extended Laceration",
+      "description": "Bleeding stacks applied by the weapon deal 25% more damage. When an enemy suffers from max bleed stacks, the wielder absorbs their stamina upon each tick.",
+      "lore": "The Serpent must be fed. What flows from the enemy must sustain the circle of your own life."
+    },
+    {
+      "id": "blessing_nocturna_luna",
+      "name": "Nocturna-Luna's Gaze",
+      "effect": "Anatomical Focus & Armor Bypass",
+      "description": "Increases Critical Hit Chance by 15% when locked onto a specific target. Critical hits ignore 50% of the target's physical armor.",
+      "lore": "The Stitched Maiden guides the edge to the exact suture of the flesh, revealing the hidden paths of mortality."
+    },
+    {
+      "id": "blessing_vulkan_ferrum",
+      "name": "Vulkan-Ferrum's Fury",
+      "effect": "Crushing Impact & Executing Shock",
+      "description": "Increases stun duration on heavy attacks by 1 turn. If a target is executed (killed), all remaining enemies on the field are slow-debuffed by the sheer impact.",
+      "lore": "The Lord of the Deep Crucible strikes with the weight of the mountain, shattering the resolve of all who witness his forge."
+    }
+  ],
+  "perks_and_abilities": [
+    {
+      "id": "parry",
+      "name": "Parry",
+      "mechanics": "A defensive technique where the player uses their weapon to redirect an incoming melee strike. Successful execution negates damage and creates a counterattack window.",
+      "metal_influence": "When forged with Crucible Steel, a parry has a 20% chance to disarm the attacker. When forged with Aged Iron, it restores 10 stamina.",
+      "god_influence": "Sol-Vitruvius's Aegis turns a basic parry into a kinetic reflection, sending physical damage back to the attacker."
+    },
+    {
+      "id": "bleed",
+      "name": "Bleed",
+      "mechanics": "An offensive status effect that deals physical damage over time (DoT) at the end of each turn, stacking up to 5 times.",
+      "metal_influence": "Blood-Iron weapons apply 2 stacks of bleed per critical hit. Quicksilver Bronze applies a bleed stack that also reduces target evasion.",
+      "god_influence": "Anima-Ouroboros's Hunger turns bleed ticks into stamina siphon, keeping the wielder fully energized."
+    },
+    {
+      "id": "execute",
+      "name": "Execute",
+      "mechanics": "A devastating finishing move that deals massive multiplier damage (x3.0) to targets under 30% health or those with active bleed/stun states.",
+      "metal_influence": "Meteoric Vitrite increases the execution threshold to 40% health. Crucible Steel execute strikes ignore armor entirely.",
+      "god_influence": "Vulkan-Ferrum's Fury triggers a concussive shockwave upon a successful execute, slowing or stunning neighboring enemies."
+    },
+    {
+      "id": "lock_on",
+      "name": "Lock-On",
+      "mechanics": "A targeting ability that focuses all subsequent attacks on a single enemy or a specific anatomical part of the enemy (e.g. Head, Chest, Leg).",
+      "metal_influence": "Quicksilver Bronze reduces the AP cost of locking on to 0. Meteoric Vitrite increases critical damage by 20% against the locked-on target.",
+      "god_influence": "Nocturna-Luna's Gaze adds a permanent 'Exposed' state to the locked-on target, reducing their evasion to zero."
+    }
+  ]
+}

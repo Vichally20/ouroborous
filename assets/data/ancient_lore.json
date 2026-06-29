@@ -1,0 +1,77 @@
+{
+  "talent_system": {
+    "system_name": "The Constellation of Grafts",
+    "origin": {
+      "title": "The Scribe's First Laceration",
+      "summary": "The origin of the physical and mental mutations that grant mortals superhuman prowess.",
+      "narrative": "In the Year of the Great Eclipse, the high anatomist Vitruvius discovered that the human body was not merely an arrangement of humors and bone, but a clockwork projection of the celestial heavens. By mapping the pathways of the stars onto the major muscle groups and lymphatic intersections of the body, he realized that mortal flesh could be 'rewired'. This is the art of the Graft. Through alchemical injections of quicksilver, crushed stardust, and vitriol, the anatomical pathways are permanently altered. These physical enhancements, known as Talents, form a constellation of growth within the subject—allowing them to transcend human fragility at the cost of their natural bodily harmony."
+    },
+    "branches": {
+      "juggernaut": {
+        "title": "Branch of the Iron Bulwark",
+        "lore": "Those who follow this path harden their bones and thicken their skeletal plates with mineralized iron. They become slow, heavy, but completely immune to the standard frailties of flesh. It is said Sol-Vitruvius himself guides the chisel of the surgeon who grafts these plates."
+      },
+      "berserker": {
+        "title": "Branch of Sanguine Frenzy",
+        "lore": "A path born of quicksilver and hot blood. By slicing the regulatory glands and letting the Sanguine humor flow uninhibited, the recipient enters a state of sacrificial rage, dealing massive damage while suffering from constant internal bleeding and structural wear."
+      },
+      "duelist": {
+        "title": "Branch of the Silent Shear",
+        "lore": "A delicate, precise graft that tunes the nervous system to the vibrational frequencies of steel. The Duelist is granted superhuman perception, allowing them to wield massive two-handed armaments with impossible speed, piercing armor at the microscopic level."
+      }
+    }
+  },
+  "magic_system": {
+    "system_name": "Alchemical Resonance of the Four Humors",
+    "core_concept": "Magic in this world is not a clean, disembodied force. It is visceral, heavy, and scientific yet occult—a direct manipulation of the human body's fluids and their cosmic counterparts.",
+    "the_four_humors": [
+      {
+        "name": "Blood (Sanguine)",
+        "governing_force": "Vitality, Heat, and Flow",
+        "mechanic": "Used to fuel physical amplification and lifesteal. Sorcerers burn their own blood to cast spells, drawing on the eternal circle of the Ouroboros."
+      },
+      {
+        "name": "Yellow Bile (Cholera)",
+        "governing_force": "Combustion, Fire, and Ruin",
+        "mechanic": "Governs the elements of heat and ash. It is highly volatile, causing enemies to burn or melt under acidic humors."
+      },
+      {
+        "name": "Black Bile (Melancholy)",
+        "governing_force": "Void, Shadow, and Gravity",
+        "mechanic": "The source of the Vitruvian Shadow itself. By thickening this humor, a channeler can bend light, step through shadows, and compress physical space."
+      },
+      {
+        "name": "Phlegm (Phlegmatic)",
+        "governing_force": "Cohesion, Frost, and Stasis",
+        "mechanic": "Controls freeze and deceleration. It slows the molecular vibrations of target tissue, locking enemies in physical stasis or freezing their vital organs."
+      }
+    ],
+    "siphoning_and_essence": "To cast magic, a channeler must extract 'Essences' from the environment, planets, or living beasts. These Essences are processed through anatomical catalysts—often brass or silver sub-dermal pipes stitched directly into the caster's forearms."
+  },
+  "gods_of_the_lands": [
+    {
+      "id": "sol_vitruvius",
+      "name": "Sol-Vitruvius, The Prime Architect",
+      "domain": "Geometry, Symmetry, Bone Structure, and Fortitude",
+      "lore": "Depicted as a multi-armed man suspended within a bronze circle of perfect geometry. He represents the mechanical order of the universe, demanding discipline, absolute calculation, and physical endurance. Builders, smiths, and front-line bulwarks pray to him for iron bones that will not buckle."
+    },
+    {
+      "id": "anima_ouroboros",
+      "name": "Anima-Ouroboros, The Endless Loop",
+      "domain": "Transformation, Decay, Blood, and Eternal Return",
+      "lore": "The Great Serpent that devours its own tail. Ouroboros represents the unavoidable cycles of life, death, and regeneration. He is the god of the blood-rite and berserk fury, teaching that all strength must be paid for in blood, and that death is merely the prelude to a more violent rebirth."
+    },
+    {
+      "id": "nocturna_luna",
+      "name": "Nocturna-Luna, The Stitched Maiden",
+      "domain": "Shadows, Precision, Anatomy's Cut, and Fate",
+      "lore": "A faceless figure wrapped in vellum bandages, holding a pair of silver dissecting shears. She is the patron of assassins, alchemists, and duelists. She rules over the spaces between heartbeats, guiding the blade to the exact anatomical weakness of a foe."
+    },
+    {
+      "id": "vulkan_ferrum",
+      "name": "Vulkan-Ferrum, Lord of the Deep Crucible",
+      "domain": "Forge, Deep Ores, Kinetic Energy, and Ruin",
+      "lore": "A towering figure of volcanic glass and molten metal. He is the blacksmith of the gods, responsible for the creation of the world's deep ores. He demands that mortals test their metal against the hottest fires, bestowing immense physical power and crushing impact force to weapons forged in his name."
+    }
+  ]
+}
