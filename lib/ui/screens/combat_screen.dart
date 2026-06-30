@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
@@ -108,6 +109,12 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
                 ),
               ),
             ),
+
+            // ─── Animated Floating Damage Numbers ───
+            _buildAnimatedDamageOverlay(combatController),
+
+            // ─── Skill Popup Banner (slides up from bottom) ───
+            _buildSkillPopupBanner(combatController),
 
             // Defeat Overlay
             if (isDefeat) _buildDefeatOverlay(combatController),
@@ -375,22 +382,46 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
                           ),
                         ),
 
-                      // Floating Damage Popups
-                      if (controller.damagePopups.containsKey(enemy.id))
+                      // ─── Red Flash Overlay (on hit) ───
+                      if (controller.lastHitEnemyId.value == enemy.id && controller.enemyHitEventId.value > 0)
+                        Positioned.fill(
+                          key: ValueKey('flash_${enemy.id}_${controller.enemyHitEventId.value}'),
+                          child: IgnorePointer(
+                            child: Container(
+                              color: Colors.red.withValues(alpha: 0.4),
+                            )
+                                .animate()
+                                .fadeIn(duration: 60.ms)
+                                .then()
+                                .fadeOut(duration: 300.ms),
+                          ),
+                        ),
+
+                      // ─── Animated Floating Damage Numbers ───
+                      if (controller.lastHitEnemyId.value == enemy.id &&
+                          controller.lastCombatEvent.value != null &&
+                          controller.lastCombatEvent.value!.targetId == enemy.id)
                         Positioned(
-                          top: -24,
+                          top: -28,
                           left: 0,
                           right: 0,
+                          key: ValueKey('dmg_${enemy.id}_${controller.enemyHitEventId.value}'),
                           child: Center(
                             child: Text(
-                              controller.damagePopups[enemy.id]!,
+                              '-${controller.lastCombatEvent.value!.totalDamage} HP',
                               style: VitruvianTypography.monospaceData(
-                                fontSize: 16,
+                                fontSize: 18,
                                 color: const Color(0xFFFF5555),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ),
+                          )
+                              .animate()
+                              .scaleXY(begin: 0.4, end: 1.2, duration: 150.ms, curve: Curves.easeOut)
+                              .then()
+                              .scaleXY(begin: 1.2, end: 1.0, duration: 100.ms)
+                              .slideY(begin: 0, end: -0.5, duration: 800.ms, curve: Curves.easeOut)
+                              .fadeOut(delay: 600.ms, duration: 400.ms),
                         ),
                     ],
                   ),
@@ -519,7 +550,26 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
                     ),
                   ),
 
-                // Floating Damage / Heal Popups
+                // ─── Red Flash Overlay (when enemy hits player) ───
+                if (controller.lastHitEnemyId.value == 'player' && controller.enemyHitEventId.value > 0)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    width: 100,
+                    height: 110,
+                    key: ValueKey('player_flash_${controller.enemyHitEventId.value}'),
+                    child: IgnorePointer(
+                      child: Container(
+                        color: Colors.red.withValues(alpha: 0.4),
+                      )
+                          .animate()
+                          .fadeIn(duration: 60.ms)
+                          .then()
+                          .fadeOut(duration: 300.ms),
+                    ),
+                  ),
+
+                // Floating Damage / Heal Popups (kept for defend/item feedback)
                 if (controller.damagePopups.containsKey('player'))
                   Positioned(
                     top: -24,
@@ -1155,5 +1205,133 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
         ),
       ),
     );
+  }
+
+  // ─── Skill Popup Banner (slides up from bottom, above HUD) ───
+  Widget _buildSkillPopupBanner(CombatController controller) {
+    return Obx(() {
+      final eventId = controller.attackEventId.value;
+      final event = controller.lastCombatEvent.value;
+
+      if (eventId == 0 || event == null) return const SizedBox.shrink();
+
+      return Positioned(
+        bottom: 200,
+        left: 24,
+        right: 24,
+        key: ValueKey('skill_popup_$eventId'),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xDD0A0806),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: event.isPlayerAction
+                    ? const Color(0xFFC89B5D)
+                    : VitruvianColors.rustBlood,
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: (event.isPlayerAction
+                          ? const Color(0xFFC89B5D)
+                          : VitruvianColors.rustBlood)
+                      .withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Weapon ⟫ Skill Name
+                Text(
+                  event.formattedWeaponSkill,
+                  style: VitruvianTypography.serifTitle(
+                    fontSize: 15,
+                    color: event.isPlayerAction
+                        ? const Color(0xFFE4DCD0)
+                        : const Color(0xFFFFAAAA),
+                  ).copyWith(letterSpacing: 1.0),
+                  textAlign: TextAlign.center,
+                ),
+                // Perk text (if any)
+                if (event.perks.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    event.perks.join(' · '),
+                    style: VitruvianTypography.monospaceData(
+                      fontSize: 11,
+                      color: const Color(0xFF8BFF8B),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
+            ),
+          )
+              .animate()
+              .slideY(begin: 1.5, end: 0, duration: 220.ms, curve: Curves.easeOutCubic)
+              .fadeIn(duration: 200.ms)
+              .then(delay: 1200.ms)
+              .fadeOut(duration: 300.ms)
+              .slideY(begin: 0, end: -0.3, duration: 300.ms),
+        ),
+      );
+    });
+  }
+
+  // ─── Animated Damage Number Overlay (centered on screen for emphasis) ───
+  Widget _buildAnimatedDamageOverlay(CombatController controller) {
+    return Obx(() {
+      final eventId = controller.enemyHitEventId.value;
+      final event = controller.lastCombatEvent.value;
+
+      if (eventId == 0 || event == null) return const SizedBox.shrink();
+
+      final isPlayerAttacking = event.isPlayerAction;
+      final damageColor = isPlayerAttacking
+          ? const Color(0xFFFF5555)
+          : const Color(0xFFFFAAAA);
+
+      return Positioned(
+        top: isPlayerAttacking
+            ? MediaQuery.of(context).size.height * 0.22
+            : MediaQuery.of(context).size.height * 0.62,
+        left: 0,
+        right: 0,
+        key: ValueKey('dmg_overlay_$eventId'),
+        child: Center(
+          child: Text(
+            '-${event.totalDamage}',
+            style: VitruvianTypography.serifTitle(
+              fontSize: 42,
+              color: damageColor,
+              fontWeight: FontWeight.bold,
+            ).copyWith(
+              shadows: [
+                Shadow(
+                  color: damageColor.withValues(alpha: 0.8),
+                  blurRadius: 20,
+                ),
+                const Shadow(
+                  color: Colors.black,
+                  blurRadius: 6,
+                ),
+              ],
+            ),
+          ),
+        )
+            .animate()
+            .scaleXY(begin: 0.3, end: 1.3, duration: 120.ms, curve: Curves.easeOut)
+            .then()
+            .scaleXY(begin: 1.3, end: 1.0, duration: 80.ms)
+            .then(delay: 500.ms)
+            .fadeOut(duration: 400.ms)
+            .slideY(begin: 0, end: -0.3, duration: 400.ms, curve: Curves.easeIn),
+      );
+    });
   }
 }

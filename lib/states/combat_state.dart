@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../models/combat_models.dart';
+import '../models/combat_event.dart';
 import '../models/item.dart';
 import '../states/player_state.dart';
 import '../states/inventory_state.dart';
@@ -46,6 +47,12 @@ class CombatController extends GetxController {
 
   // Damage popups / feedback (e.g. Map of combatantId to floating text)
   final damagePopups = <String, String>{}.obs;
+
+  // ─── Animation Triggers (Reactive Key pattern) ───
+  final RxInt attackEventId = 0.obs;
+  final Rxn<CombatEvent> lastCombatEvent = Rxn<CombatEvent>();
+  final RxInt enemyHitEventId = 0.obs;
+  final RxnString lastHitEnemyId = RxnString();
 
   final RxnString currentVictoryNodeId = RxnString();
 
@@ -108,6 +115,10 @@ class CombatController extends GetxController {
     selectedEnemyId.value = null;
     damagePopups.clear();
     combatLogs.clear();
+    attackEventId.value = 0;
+    lastCombatEvent.value = null;
+    enemyHitEventId.value = 0;
+    lastHitEnemyId.value = null;
 
     // 2. Populate enemies from encounter definition
     final List<Enemy> spawnedEnemies = [];
@@ -230,7 +241,20 @@ class CombatController extends GetxController {
     playerAp.value -= 1;
     playerStamina.value -= staminaCost;
     target.hp.value -= damage;
-    showDamagePopup(target.id, '-$damage HP');
+
+    // ─── Emit CombatEvent for animation layer ───
+    final event = CombatEvent(
+      skillName: skillName,
+      weaponName: playerWeaponName.value,
+      targetId: target.id,
+      damageHits: [damage],
+      perks: const [], // Ready for perk system wiring
+      isPlayerAction: true,
+    );
+    lastCombatEvent.value = event;
+    attackEventId.value++;
+    lastHitEnemyId.value = target.id;
+    enemyHitEventId.value++;
 
     if (skillIndex == 1 && playerLane.value == 'front') {
       addLog('Lunge! You execute $skillName from the Front Line for $damage physical damage.');
@@ -397,7 +421,20 @@ class CombatController extends GetxController {
 
         playerHp.value -= baseDmg;
         showDamagePopup('player', '-$baseDmg HP');
-        
+
+        // ─── Emit CombatEvent for enemy attack animation ───
+        final enemyEvent = CombatEvent(
+          skillName: enemy.availableSkills.isNotEmpty ? enemy.availableSkills.first : 'Strike',
+          weaponName: enemy.name,
+          targetId: 'player',
+          damageHits: [baseDmg],
+          isPlayerAction: false,
+        );
+        lastCombatEvent.value = enemyEvent;
+        attackEventId.value++;
+        lastHitEnemyId.value = 'player';
+        enemyHitEventId.value++;
+
         if (isDefending.value) {
           addLog('The ${enemy.name} strikes your shield for $baseDmg damage.');
         } else {
