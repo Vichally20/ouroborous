@@ -73,8 +73,8 @@
     "stats": {
       "maxHp": 150,
       "maxStamina": 200,
-      "strength": 22,
-      "defense": 8,
+      "strength": 12,
+      "defense": 28,
       "speed": 4
     },
     "ai_profile": {

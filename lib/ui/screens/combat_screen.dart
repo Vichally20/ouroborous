@@ -215,18 +215,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
           ),
           
           // Tactical Divide
-          Container(
-            height: 16,
-            color: const Color(0xFF120E0A),
-            alignment: Alignment.center,
-            child: Text(
-              '⚔   LANE DIVISION   ⚔',
-              style: VitruvianTypography.monospaceData(
-                fontSize: 9,
-                color: VitruvianColors.sepiaUmber.withValues(alpha: 0.5),
-              ),
-            ),
-          ),
+          const Divider(color: Color(0xFF2A2218), thickness: 2, height: 8),
 
           // Lane 3: Player Front Line (Row 3)
           Expanded(
@@ -259,19 +248,6 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
   }) {
     return Stack(
       children: [
-        // Watermarked lane name
-        Positioned(
-          left: 12,
-          top: 8,
-          child: Text(
-            title.toUpperCase(),
-            style: VitruvianTypography.monospaceData(
-              fontSize: 9,
-              color: const Color(0xFF28221B),
-            ),
-          ),
-        ),
-        
         // Enemy cards
         Center(
           child: Row(
@@ -279,6 +255,10 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
             children: laneEnemies.map((enemy) {
               final isSelected = selectedId == enemy.id;
               final isDead = enemy.isDead.value;
+
+              if (isDead) {
+                return const SizedBox.shrink();
+              }
 
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -459,135 +439,149 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
 
     return Stack(
       children: [
-        // Watermarked lane name
-        Positioned(
-          left: 12,
-          top: 8,
-          child: Text(
-            (isFront ? 'Player Front Line' : 'Player Back Line').toUpperCase(),
-            style: VitruvianTypography.monospaceData(
-              fontSize: 9,
-              color: const Color(0xFF28221B),
+        // Move button in empty lane
+        if (!isPlayerInThisLane && controller.isPlayerTurn.value && !controller.hasMovedThisTurn.value && controller.playerAp.value >= 1)
+          Center(
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFC89B5D),
+                side: BorderSide(color: const Color(0xFFC89B5D).withValues(alpha: 0.3)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+              onPressed: controller.playerMove,
+              icon: Icon(isFront ? Icons.arrow_upward : Icons.arrow_downward, size: 16),
+              label: Text(
+                isFront ? 'MOVE TO FRONT LINE (1 AP)' : 'MOVE TO BACK LINE (1 AP)',
+                style: VitruvianTypography.monospaceData(fontSize: 10, color: const Color(0xFFC89B5D)),
+              ),
             ),
           ),
-        ),
 
         // Player card
         if (isPlayerInThisLane)
           Center(
-            child: Stack(
-              clipBehavior: Clip.none,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  width: 100,
-                  height: 110,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF100D0A),
-                    border: Border.all(
-                      color: VitruvianColors.sepiaUmber,
-                      width: 1.5,
+                // Shift Lane button next to character
+                if (controller.isPlayerTurn.value && !controller.hasMovedThisTurn.value && controller.playerAp.value >= 1) ...[
+                  Tooltip(
+                    message: 'Shift lane (Costs 1 AP)',
+                    child: Material(
+                      color: const Color(0xFFC89B5D),
+                      shape: const CircleBorder(),
+                      elevation: 4,
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: controller.playerMove,
+                        child: Padding(
+                          padding: const EdgeInsets.all(10.0),
+                          child: Icon(
+                            isFront ? Icons.arrow_downward : Icons.arrow_upward,
+                            size: 18,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      // Gladiator artwork
-                      Expanded(
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Image.asset(
-                              classImageAsset,
-                              fit: BoxFit.cover,
-                            ),
-                            // Defending visual indicator
-                            if (controller.isDefending.value)
-                              Container(
-                                color: Colors.blue.withValues(alpha: 0.2),
-                                alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.shield,
-                                  color: Colors.cyanAccent,
-                                  size: 40,
+                  const SizedBox(width: 16),
+                ],
+
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      width: 100,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF100D0A),
+                        border: Border.all(
+                          color: VitruvianColors.sepiaUmber,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          // Gladiator artwork
+                          Expanded(
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.asset(
+                                  classImageAsset,
+                                  fit: BoxFit.cover,
                                 ),
-                              ),
-                          ],
+                                // Defending visual indicator
+                                if (controller.isDefending.value)
+                                  Container(
+                                    color: Colors.blue.withValues(alpha: 0.2),
+                                    alignment: Alignment.center,
+                                    child: const Icon(
+                                      Icons.shield,
+                                      color: Colors.cyanAccent,
+                                      size: 40,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          
+                          // Small text label
+                          Container(
+                            color: const Color(0xFF1C140E),
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'YOU',
+                              style: VitruvianTypography.serifTitle(fontSize: 11),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ─── Red Flash Overlay (when enemy hits player) ───
+                    if (controller.lastHitEnemyId.value == 'player' && controller.enemyHitEventId.value > 0)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        width: 100,
+                        height: 110,
+                        key: ValueKey('player_flash_${controller.enemyHitEventId.value}'),
+                        child: IgnorePointer(
+                          child: Container(
+                            color: Colors.red.withValues(alpha: 0.4),
+                          )
+                              .animate()
+                              .fadeIn(duration: 60.ms)
+                              .then()
+                              .fadeOut(duration: 300.ms),
                         ),
                       ),
-                      
-                      // Small text label
-                      Container(
-                        color: const Color(0xFF1C140E),
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        alignment: Alignment.center,
-                        child: Text(
-                          'YOU',
-                          style: VitruvianTypography.serifTitle(fontSize: 11),
+
+                    // Floating Damage / Heal Popups (kept for defend/item feedback)
+                    if (controller.damagePopups.containsKey('player'))
+                      Positioned(
+                        top: -24,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Text(
+                            controller.damagePopups['player']!,
+                            style: VitruvianTypography.monospaceData(
+                              fontSize: 16,
+                              color: controller.damagePopups['player']!.contains('-')
+                                  ? const Color(0xFFFF5555)
+                                  : Colors.greenAccent,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
-
-                // Shift Lane button overlay (arrow pointing up or down)
-                if (controller.isPlayerTurn.value && !controller.hasMovedThisTurn.value && controller.playerAp.value >= 1)
-                  Positioned(
-                    left: -32,
-                    top: 36,
-                    child: CircleAvatar(
-                      radius: 14,
-                      backgroundColor: const Color(0xFFC89B5D),
-                      child: IconButton(
-                        icon: Icon(
-                          isFront ? Icons.arrow_downward : Icons.arrow_upward,
-                          size: 12,
-                          color: Colors.black,
-                        ),
-                        padding: EdgeInsets.zero,
-                        onPressed: controller.playerMove,
-                        tooltip: 'Shift lane (Costs 1 AP)',
-                      ),
-                    ),
-                  ),
-
-                // ─── Red Flash Overlay (when enemy hits player) ───
-                if (controller.lastHitEnemyId.value == 'player' && controller.enemyHitEventId.value > 0)
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    width: 100,
-                    height: 110,
-                    key: ValueKey('player_flash_${controller.enemyHitEventId.value}'),
-                    child: IgnorePointer(
-                      child: Container(
-                        color: Colors.red.withValues(alpha: 0.4),
-                      )
-                          .animate()
-                          .fadeIn(duration: 60.ms)
-                          .then()
-                          .fadeOut(duration: 300.ms),
-                    ),
-                  ),
-
-                // Floating Damage / Heal Popups (kept for defend/item feedback)
-                if (controller.damagePopups.containsKey('player'))
-                  Positioned(
-                    top: -24,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Text(
-                        controller.damagePopups['player']!,
-                        style: VitruvianTypography.monospaceData(
-                          fontSize: 16,
-                          color: controller.damagePopups['player']!.contains('-')
-                              ? const Color(0xFFFF5555)
-                              : Colors.greenAccent,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
@@ -826,16 +820,31 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
             ),
             const SizedBox(height: 16),
             
-            // Skill 1
-            _buildSkillListItem(
-              name: 'Skill 1: Blood Falchion Strike',
-              desc: 'Inflicts 15-22 physical damage. Deals +50% damage if you are in the Front Line. Deals -30% from the Back Line.',
-              ap: 1,
-              stamina: 20,
-              isEnabled: controller.playerStamina.value >= 20,
-              onTap: () {
-                Get.back(); // close sheet
-                controller.playerAttack(1);
+            Builder(
+              builder: (context) {
+                final selectedEnemy = controller.enemies.firstWhereOrNull(
+                  (e) => e.id == controller.selectedEnemyId.value,
+                );
+                final bool skill1InRange = selectedEnemy == null ||
+                    controller.canReachTarget(
+                      controller.playerLane.value,
+                      selectedEnemy.lane.value,
+                      controller.playerWeaponRange.value,
+                    );
+
+                return _buildSkillListItem(
+                  name: 'Skill 1: Blood Falchion Strike',
+                  desc: skill1InRange
+                      ? 'Inflicts 15-22 physical damage. Deals +50% damage if you are in the Front Line. Deals -30% from the Back Line.'
+                      : 'OUT OF RANGE — Move to Front Line or equip a ranged weapon.',
+                  ap: 1,
+                  stamina: 20,
+                  isEnabled: controller.playerStamina.value >= 20 && skill1InRange,
+                  onTap: () {
+                    Get.back(); // close sheet
+                    controller.playerAttack(1);
+                  },
+                );
               },
             ),
             const SizedBox(height: 12),

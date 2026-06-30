@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../models/combat_models.dart';
 import '../models/combat_event.dart';
 import '../models/item.dart';
+import '../models/skill.dart';
 import '../states/player_state.dart';
 import '../states/inventory_state.dart';
 import '../game/story_engine.dart';
@@ -35,6 +36,7 @@ class CombatController extends GetxController {
   final playerConstitution = 10.obs;
   final playerWeaponName = 'Unarmed'.obs;
   final playerWeaponBonus = 0.obs;
+  final playerWeaponRange = WeaponRange.melee.obs;
 
   // Selected enemy for target targeting
   final selectedEnemyId = RxnString();
@@ -106,6 +108,7 @@ class CombatController extends GetxController {
     final mainHandItem = activeHero.loadout.mainHand;
     playerWeaponName.value = mainHandItem?.name ?? 'Unarmed';
     playerWeaponBonus.value = mainHandItem?.statBonus ?? 0;
+    playerWeaponRange.value = mainHandItem?.weaponRange ?? WeaponRange.melee;
     
     playerAp.value = 3;
     playerLane.value = 'back';
@@ -172,6 +175,25 @@ class CombatController extends GetxController {
     });
   }
 
+  int _laneDistance(String playerLane, String enemyLane) {
+    final pIdx = playerLane == 'front' ? 2 : 3;
+    final eIdx = enemyLane == 'front' ? 1 : 0;
+    return (pIdx - eIdx).abs();
+  }
+
+  bool canReachTarget(String attackerLane, String targetLane, WeaponRange range) {
+    if (range == WeaponRange.ranged) return true;
+    if (_laneDistance(attackerLane, targetLane) <= 1) return true;
+
+    // If targeting across empty row 2 (Enemy Front Line)
+    if ((attackerLane == 'front' && targetLane == 'back') || (attackerLane == 'back' && targetLane == 'front')) {
+      final bool isEnemyFrontEmpty = enemies.where((e) => e.lane.value == 'front' && !e.isDead.value).isEmpty;
+      if (isEnemyFrontEmpty) return true;
+    }
+
+    return false;
+  }
+
   // Action 1: Move lane (costs 1 AP, 0 Stamina)
   void playerMove() {
     if (!isPlayerTurn.value || playerAp.value < 1) return;
@@ -208,6 +230,10 @@ class CombatController extends GetxController {
     String skillName = '';
 
     if (skillIndex == 1) {
+      if (!canReachTarget(playerLane.value, target.lane.value, playerWeaponRange.value)) {
+        addLog('${target.name} is out of range! Move to the Front Line or equip a ranged weapon.');
+        return false;
+      }
       skillName = 'Blood Falchion Strike';
       staminaCost = 20;
       
@@ -381,10 +407,14 @@ class CombatController extends GetxController {
       }
 
       // Range preferences
+      final bool isFrontEmpty = enemies.where((e) => e.lane.value == 'front' && !e.isDead.value).isEmpty;
       if (enemy.lane.value == 'back' && enemy.aiProfile.preferredRange == 0.0) {
         scoreAdvance = 100.0; // Wants to get into melee
       } else if (enemy.lane.value == 'front' && enemy.aiProfile.preferredRange > 0.0) {
         scoreFlee += 50.0; // Wants to get back to range
+      }
+      if (enemy.lane.value == 'back' && isFrontEmpty && enemy.aiProfile.preferredRange < 0.8) {
+        scoreAdvance += 150.0; // Move into empty front row
       }
 
       // Add a little randomness so they aren't 100% predictable
@@ -403,18 +433,40 @@ class CombatController extends GetxController {
         await Future.delayed(const Duration(milliseconds: 1000));
       } else {
         // Attack
-        int baseDmg = enemy.strength + _random.nextInt(8) - 4;
+        final bool enemyIsRanged = enemy.aiProfile.preferredRange > 0.5;
+        final enemyRange = enemyIsRanged ? WeaponRange.ranged : WeaponRange.melee;
+        if (!canReachTarget(enemy.lane.value, playerLane.value, enemyRange)) {
+          if (enemy.lane.value == 'back') {
+            enemy.lane.value = 'front';
+            addLog('The ${enemy.name} charges to the Front Line!');
+            await Future.delayed(const Duration(milliseconds: 1000));
+          } else {
+            addLog('The ${enemy.name} snarls from afar, out of reach.');
+            await Future.delayed(const Duration(milliseconds: 800));
+          }
+          checkVictoryOrDefeat();
+          continue;
+        }
+
+        final String chosenSkillId = enemy.availableSkills.isNotEmpty
+            ? enemy.availableSkills[_random.nextInt(enemy.availableSkills.length)]
+            : 'strike';
+        final CombatSkill skill = SkillDictionary.getSkill(chosenSkillId);
+
+        int baseDmg = enemy.strength + _random.nextInt(skill.maxDamage - skill.minDamage + 1) + (skill.minDamage - 10);
+
+        if (enemy.lane.value == 'front') {
+          baseDmg = (baseDmg * skill.frontLineMultiplier).round();
+        } else if (enemy.lane.value == 'back') {
+          baseDmg = (baseDmg * skill.backLineMultiplier * 0.6).round();
+        }
 
         if (playerLane.value == 'back' && enemy.lane.value == 'front') {
-          baseDmg = (baseDmg * 0.6).round();
-        }
-        
-        if (enemy.lane.value == 'back') {
-          baseDmg = (baseDmg * 0.5).round();
+          baseDmg = (baseDmg * 0.7).round();
         }
 
         if (isDefending.value) {
-          baseDmg = (baseDmg * 0.5).round();
+          baseDmg = skill.ignoresArmor ? (baseDmg * 0.75).round() : (baseDmg * 0.5).round();
         }
 
         if (baseDmg < 1) baseDmg = 1;
@@ -422,9 +474,14 @@ class CombatController extends GetxController {
         playerHp.value -= baseDmg;
         showDamagePopup('player', '-$baseDmg HP');
 
+        if (skill.healAmount > 0) {
+          enemy.hp.value = (enemy.hp.value + skill.healAmount).clamp(0, enemy.maxHp);
+          showDamagePopup(enemy.id, '+${skill.healAmount} HP');
+        }
+
         // ─── Emit CombatEvent for enemy attack animation ───
         final enemyEvent = CombatEvent(
-          skillName: enemy.availableSkills.isNotEmpty ? enemy.availableSkills.first : 'Strike',
+          skillName: skill.name,
           weaponName: enemy.name,
           targetId: 'player',
           damageHits: [baseDmg],
@@ -436,9 +493,9 @@ class CombatController extends GetxController {
         enemyHitEventId.value++;
 
         if (isDefending.value) {
-          addLog('The ${enemy.name} strikes your shield for $baseDmg damage.');
+          addLog('The ${enemy.name} uses ${skill.name} on your shield for $baseDmg damage.');
         } else {
-          addLog('The ${enemy.name} hits you for $baseDmg physical damage.');
+          addLog('The ${enemy.name} uses ${skill.name} for $baseDmg ${skill.type.name} damage.');
         }
       }
 

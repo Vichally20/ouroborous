@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../models/item.dart';
+import '../../models/weapon_perk.dart';
 import '../../states/inventory_state.dart';
 import '../../states/player_state.dart';
 
@@ -191,6 +192,58 @@ class InventoryScreen extends StatelessWidget {
                     color: VitruvianColors.agedBone,
                   ),
                 ),
+                if (item.perks.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  Text(
+                    'WEAPON PERKS',
+                    style: VitruvianTypography.serifTitle(
+                      fontSize: 13,
+                      color: const Color(0xFFC89B5D),
+                    ).copyWith(letterSpacing: 2),
+                  ),
+                  const SizedBox(height: 8),
+                  ...item.perks.map((perkId) {
+                    final perk = WeaponPerkDictionary.getPerk(perkId);
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF201B15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF3A2C20)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(perk.icon, size: 20, color: const Color(0xFFC89B5D)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  perk.name.toUpperCase(),
+                                  style: VitruvianTypography.serifTitle(
+                                    fontSize: 13,
+                                    color: const Color(0xFFE0C8B0),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  perk.mechanics,
+                                  style: VitruvianTypography.monospaceData(
+                                    fontSize: 11,
+                                    color: const Color(0xFF9A8A7A),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
                 const SizedBox(height: 24),
                 Row(
                   children: [

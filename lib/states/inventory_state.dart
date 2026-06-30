@@ -36,6 +36,7 @@ class InventoryState extends GetxController {
       equipSlot: AnatomicalSlot.mainHand,
       statBonus: 18,
       count: 1,
+      perks: ['execute', 'parry'],
     ),
     const ArtifactItem(
       id: 'w2',
@@ -47,6 +48,7 @@ class InventoryState extends GetxController {
       equipSlot: AnatomicalSlot.secondaryHand,
       statBonus: 12,
       count: 1,
+      perks: ['bleed', 'expose_weakness'],
     ),
     const ArtifactItem(
       id: 'w3',
@@ -58,6 +60,8 @@ class InventoryState extends GetxController {
       equipSlot: AnatomicalSlot.mainHand,
       statBonus: 10,
       count: 1,
+      weaponRange: WeaponRange.ranged,
+      perks: ['lock_on'],
     ),
 
     // Apparel

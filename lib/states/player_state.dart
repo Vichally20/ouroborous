@@ -50,6 +50,7 @@ class PlayerState extends GetxController {
           equipSlot: AnatomicalSlot.mainHand,
           statBonus: 18,
           count: 1,
+          perks: ['execute', 'parry'],
         ),
         chest: const ArtifactItem(
           id: 'ap1',
@@ -96,6 +97,7 @@ class PlayerState extends GetxController {
           equipSlot: AnatomicalSlot.mainHand,
           statBonus: 10,
           count: 1,
+          perks: ['expose_weakness'],
         ),
         secondaryHand: const ArtifactItem(
           id: 'w2',
@@ -107,6 +109,7 @@ class PlayerState extends GetxController {
           equipSlot: AnatomicalSlot.secondaryHand,
           statBonus: 12,
           count: 1,
+          perks: ['bleed', 'expose_weakness'],
         ),
       ),
       vitals: Vitals(
@@ -142,6 +145,8 @@ class PlayerState extends GetxController {
           equipSlot: AnatomicalSlot.mainHand,
           statBonus: 10,
           count: 1,
+          weaponRange: WeaponRange.ranged,
+          perks: ['lock_on'],
         ),
         head: const ArtifactItem(
           id: 'ap3_head',

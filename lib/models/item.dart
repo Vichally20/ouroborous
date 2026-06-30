@@ -4,6 +4,8 @@ enum ItemRarity { common, unpolished, clinical, relic, vitruvian }
 
 enum AnatomicalSlot { head, chest, leg, mainHand, secondaryHand, none }
 
+enum WeaponRange { melee, ranged }
+
 class ArtifactItem {
   final String id;
   final String name;
@@ -14,6 +16,8 @@ class ArtifactItem {
   final AnatomicalSlot equipSlot;
   final int statBonus;
   final int count;
+  final WeaponRange weaponRange;
+  final List<String> perks;
 
   const ArtifactItem({
     required this.id,
@@ -25,5 +29,7 @@ class ArtifactItem {
     this.equipSlot = AnatomicalSlot.none,
     this.statBonus = 0,
     this.count = 1,
+    this.weaponRange = WeaponRange.melee,
+    this.perks = const [],
   });
 }
