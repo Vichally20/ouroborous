@@ -94,18 +94,25 @@ class InventoryScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Row(
           children: [
-            Text(
-              item.name,
-              style: VitruvianTypography.serifBody(
-                fontSize: 15,
-                color: VitruvianColors.agedBone,
-              ).copyWith(fontStyle: isItalic ? FontStyle.italic : FontStyle.normal),
+            Flexible(
+              flex: 4,
+              child: Text(
+                item.name,
+                style: VitruvianTypography.serifBody(
+                  fontSize: 15,
+                  color: VitruvianColors.agedBone,
+                ).copyWith(fontStyle: isItalic ? FontStyle.italic : FontStyle.normal),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Expanded(
+              flex: 2,
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final dotCount = (constraints.maxWidth / 5).floor();
+                  if (dotCount <= 0) return const SizedBox.shrink();
                   return Text(
                     '.' * dotCount,
                     style: const TextStyle(color: Color(0xFF2A2218), fontSize: 11),
@@ -115,15 +122,15 @@ class InventoryScreen extends StatelessWidget {
                 },
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               countStr,
               style: VitruvianTypography.monospaceData(fontSize: 13, color: VitruvianColors.agedBone),
             ),
             if (weightStr.isNotEmpty) ...[
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               SizedBox(
-                width: 58,
+                width: 54,
                 child: Text(
                   weightStr,
                   style: VitruvianTypography.monospaceData(
