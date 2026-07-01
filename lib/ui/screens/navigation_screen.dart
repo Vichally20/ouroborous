@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../sandbox/sandbox_launcher.dart';
 import '../../states/navigation_state.dart';
 import '../widgets/etched_container.dart';
 
@@ -137,6 +138,13 @@ class NavigationScreen extends StatelessWidget {
                     top: city.pos.dy - 28,
                     child: GestureDetector(
                       onTap: () => nav.selectWorldCity(city.id),
+                      onDoubleTap: () {
+                        if (city.id == 'island_of_skulls') {
+                          SandboxLauncher.openSandbox(context);
+                        } else {
+                          nav.enterCity(city.id);
+                        }
+                      },
                       behavior: HitTestBehavior.opaque,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -178,11 +186,13 @@ class NavigationScreen extends StatelessWidget {
                             child: Icon(
                               !isUnlocked
                                   ? Icons.lock
-                                  : city.type == WorldCityType.capital
-                                      ? Icons.castle
-                                      : city.type == WorldCityType.port
-                                          ? Icons.anchor
-                                          : Icons.shield,
+                                  : city.id == 'island_of_skulls'
+                                      ? Icons.dangerous
+                                      : city.type == WorldCityType.capital
+                                          ? Icons.castle
+                                          : city.type == WorldCityType.port
+                                              ? Icons.anchor
+                                              : Icons.shield,
                               size: isSelected ? 28 : 22,
                               color: !isUnlocked
                                   ? Colors.redAccent
@@ -301,15 +311,19 @@ class NavigationScreen extends StatelessWidget {
                           size: 18,
                         ),
                         label: Text(
-                          currentCity.id == selectedCity.id
-                              ? 'ENTER CITY STREETS'
-                              : currentCity.connectedCityIds.contains(selectedCity.id)
-                                  ? 'TRAVERSE ALONG ROUTE'
-                                  : 'ROUTE UNAVAILABLE DIRECTLY',
+                          selectedCity.id == 'island_of_skulls'
+                              ? 'OPEN SANDBOX DUNGEON (WAVES 1-30)'
+                              : currentCity.id == selectedCity.id
+                                  ? 'ENTER CITY STREETS'
+                                  : currentCity.connectedCityIds.contains(selectedCity.id)
+                                      ? 'TRAVERSE ALONG ROUTE'
+                                      : 'ROUTE UNAVAILABLE DIRECTLY',
                           style: VitruvianTypography.monospaceData(fontSize: 12),
                         ),
                         onPressed: () {
-                          if (currentCity.id == selectedCity.id) {
+                          if (selectedCity.id == 'island_of_skulls') {
+                            SandboxLauncher.openSandbox(context);
+                          } else if (currentCity.id == selectedCity.id) {
                             nav.enterCity(selectedCity.id);
                           } else if (currentCity.connectedCityIds.contains(selectedCity.id)) {
                             nav.travelToSelectedCity();
@@ -778,7 +792,7 @@ class _AutoCenterViewerState extends State<AutoCenterViewer> {
     final size = MediaQuery.of(context).size;
     final x = -(widget.target.dx) + (size.width / 2);
     final y = -(widget.target.dy) + (size.height / 2);
-    _controller.value = Matrix4.identity()..translate(x, y);
+    _controller.value = Matrix4.identity()..translateByDouble(x, y, 0.0, 1.0);
   }
 
   @override

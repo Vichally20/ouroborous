@@ -1081,7 +1081,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
             ),
             const SizedBox(height: 16),
             Text(
-              'YOU FELL PAST THE VEIL',
+              controller.isSandbox.value ? 'PROVING GROUNDS DEFEAT' : 'YOU FELL PAST THE VEIL',
               style: VitruvianTypography.serifTitle(
                 fontSize: 26,
                 color: VitruvianColors.rustBlood,
@@ -1090,7 +1090,9 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
             ),
             const SizedBox(height: 16),
             Text(
-              'The subterranean shadows of the undercroft consume your essence. The werewolves continue their rhythmic clicking...',
+              controller.isSandbox.value
+                  ? 'You were overcome in the Sandbox Arena. Refine your loadout and attributes to conquer this wave.'
+                  : 'The subterranean shadows of the undercroft consume your essence. The werewolves continue their rhythmic clicking...',
               style: VitruvianTypography.serifBody(
                 fontSize: 15,
                 color: const Color(0xFF8C7D73),
@@ -1109,9 +1111,19 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
                       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    onPressed: () => controller.startCombat('combat_crypt_werewolves'), // restart
+                    onPressed: () {
+                      if (controller.isSandbox.value) {
+                        if (controller.onSandboxRetry != null) {
+                          controller.onSandboxRetry!();
+                        } else {
+                          controller.escapeCombat();
+                        }
+                      } else {
+                        controller.startCombat('combat_crypt_werewolves');
+                      }
+                    },
                     child: Text(
-                      'RETRY CONFLICT',
+                      controller.isSandbox.value ? 'RETRY WAVE' : 'RETRY CONFLICT',
                       style: VitruvianTypography.monospaceData(fontSize: 13),
                     ),
                   ),
@@ -1126,9 +1138,9 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
                       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    onPressed: () => controller.escapeCombat(), // flee
+                    onPressed: () => controller.escapeCombat(),
                     child: Text(
-                      'RETREAT TO SANCTUARY',
+                      controller.isSandbox.value ? 'RETURN TO SETUP' : 'RETREAT TO SANCTUARY',
                       style: VitruvianTypography.monospaceData(fontSize: 13),
                     ),
                   ),
@@ -1157,7 +1169,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
             ),
             const SizedBox(height: 16),
             Text(
-              'THE FOE VANQUISHED',
+              controller.isSandbox.value ? 'WAVE CONQUERED' : 'THE FOE VANQUISHED',
               style: VitruvianTypography.serifTitle(
                 fontSize: 26,
                 color: const Color(0xFFC89B5D),
@@ -1166,7 +1178,9 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
             ),
             const SizedBox(height: 16),
             Text(
-              'The lupine monsters dissolve into the ancient stone floor. Silence returns to the scriptorium chamber. Your blades drip with black bile.',
+              controller.isSandbox.value
+                  ? 'You stand victorious in the Proving Grounds. Prepare your vitals for the next trial.'
+                  : 'The lupine monsters dissolve into the ancient stone floor. Silence returns to the scriptorium chamber. Your blades drip with black bile.',
               style: VitruvianTypography.serifBody(
                 fontSize: 15,
                 color: const Color(0xFF8C7D73),
@@ -1181,7 +1195,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
                 color: const Color(0xFF132213),
               ),
               child: Text(
-                '+50 XP REWARDED',
+                controller.isSandbox.value ? 'ARENA REWARD: VITALS RESTORED' : '+50 XP REWARDED',
                 style: VitruvianTypography.monospaceData(
                   fontSize: 12,
                   color: Colors.greenAccent,
@@ -1189,27 +1203,75 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
               ),
             ),
             const SizedBox(height: 48),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFC89B5D),
-                  foregroundColor: Colors.black,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                onPressed: () {
-                  controller.inCombat.value = false; // exit combat view
-                },
-                child: Text(
-                  'COLLECT TROPHIES & TRAVERSE',
-                  style: VitruvianTypography.monospaceData(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+            if (controller.isSandbox.value)
+              Row(
+                children: [
+                  if (controller.onSandboxNextWave != null) ...[
+                    Expanded(
+                      flex: 3,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFC89B5D),
+                          foregroundColor: Colors.black,
+                          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        onPressed: () => controller.onSandboxNextWave!(),
+                        child: Text(
+                          'PROCEED TO NEXT WAVE',
+                          style: VitruvianTypography.monospaceData(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                  ],
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF151310),
+                        foregroundColor: VitruvianColors.agedBone,
+                        side: const BorderSide(color: Color(0xFF3C3224)),
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      onPressed: () {
+                        controller.inCombat.value = false;
+                        controller.isSandbox.value = false;
+                      },
+                      child: Text(
+                        'RETURN TO SETUP',
+                        style: VitruvianTypography.monospaceData(fontSize: 13),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFC89B5D),
+                    foregroundColor: Colors.black,
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  onPressed: () {
+                    controller.inCombat.value = false; // exit combat view
+                  },
+                  child: Text(
+                    'COLLECT TROPHIES & TRAVERSE',
+                    style: VitruvianTypography.monospaceData(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),

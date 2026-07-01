@@ -83,7 +83,7 @@ class NavigationState extends GetxController {
   final currentCityId = RxnString('aethel_cap');
   final currentLocationId = RxnString();
 
-  final unlockedCityIds = <String>{'aethel_cap', 'riverend_port', 'frost_keep'}.obs;
+  final unlockedCityIds = <String>{'aethel_cap', 'riverend_port', 'frost_keep', 'island_of_skulls'}.obs;
   final unlockedLocationIds = <String>{'undercroft', 'n1', 'slums'}.obs;
 
   final Map<String, CityData> cities = const {
@@ -220,7 +220,7 @@ class NavigationState extends GetxController {
       continent: 'Aethel',
       type: WorldCityType.port,
       pos: Offset(740, 720),
-      connectedCityIds: ['aethel_cap', 'coral_harbor', 'gilded_shore'],
+      connectedCityIds: ['aethel_cap', 'coral_harbor', 'gilded_shore', 'island_of_skulls'],
       lore: 'Busy southern trade port where the Skyhold river meets the Whispering Sea.',
     ),
     'frost_keep': WorldCityNode(
@@ -303,6 +303,15 @@ class NavigationState extends GetxController {
       pos: Offset(1450, 550),
       connectedCityIds: ['al_khazad', 'gilded_shore'],
       lore: 'Scorched harbor receiving exotic silk from the Great Eastern Ocean.',
+    ),
+    'island_of_skulls': WorldCityNode(
+      id: 'island_of_skulls',
+      name: 'Island of Skulls (Sandbox)',
+      continent: 'Southern Ocean',
+      type: WorldCityType.fort,
+      pos: Offset(450, 850),
+      connectedCityIds: ['riverend_port'],
+      lore: 'Ominous rocky formation shrouded in mist. Double-click or enter to access the 30-Wave Sandbox Proving Grounds.',
     ),
   };
 

@@ -14,6 +14,9 @@ import '../game/story_engine.dart';
 class CombatController extends GetxController {
   final inCombat = false.obs;
   final isPlayerTurn = true.obs;
+  final isSandbox = false.obs;
+  VoidCallback? onSandboxNextWave;
+  VoidCallback? onSandboxRetry;
 
   // Bestiary & Encounters
   final RxMap<String, Enemy> bestiary = <String, Enemy>{}.obs;
@@ -83,6 +86,9 @@ class CombatController extends GetxController {
   }
 
   void startCombat(String encounterId, [String? victoryNodeId]) {
+    isSandbox.value = false;
+    onSandboxNextWave = null;
+    onSandboxRetry = null;
     if (!encounters.containsKey(encounterId)) {
       addLog('Encounter $encounterId not found!');
       return;
@@ -150,6 +156,61 @@ class CombatController extends GetxController {
     addLog('${playerName.value} enters the fray equipped with ${playerWeaponName.value}!');
     addLog(encounter['description'] ?? 'Enemies surround you.');
     addLog('Combat initiated. Position: Back Line.');
+  }
+
+  void startSandboxCombat({
+    required int heroMaxHp,
+    required int heroMaxStamina,
+    required int heroStrength,
+    required int heroIntelligence,
+    required int heroConstitution,
+    required String weaponName,
+    required int weaponBonus,
+    required WeaponRange weaponRange,
+    required Enemy enemy,
+    VoidCallback? onNextWave,
+    VoidCallback? onRetry,
+  }) {
+    isSandbox.value = true;
+    onSandboxNextWave = onNextWave;
+    onSandboxRetry = onRetry;
+
+    playerMaxHp.value = heroMaxHp;
+    playerHp.value = heroMaxHp;
+    playerMaxStamina.value = heroMaxStamina;
+    playerStamina.value = heroMaxStamina;
+
+    playerName.value = 'Sandbox Gladiator';
+    playerStrength.value = heroStrength;
+    playerIntelligence.value = heroIntelligence;
+    playerConstitution.value = heroConstitution;
+
+    playerWeaponName.value = weaponName;
+    playerWeaponBonus.value = weaponBonus;
+    playerWeaponRange.value = weaponRange;
+
+    playerAp.value = 3;
+    playerLane.value = 'back';
+    hasMovedThisTurn.value = false;
+    isDefending.value = false;
+    isPlayerTurn.value = true;
+    selectedEnemyId.value = null;
+    damagePopups.clear();
+    combatLogs.clear();
+    attackEventId.value = 0;
+    lastCombatEvent.value = null;
+    enemyHitEventId.value = 0;
+    lastHitEnemyId.value = null;
+
+    enemies.value = [enemy];
+    selectedEnemyId.value = enemy.id;
+    currentVictoryNodeId.value = null;
+
+    inCombat.value = true;
+
+    addLog('Entering Island of Skulls Sandbox Proving Grounds...');
+    addLog('Equipped: $weaponName [Bonus +$weaponBonus]');
+    addLog('Combat initiated against ${enemy.name}. Position: Back Line.');
   }
 
   void addLog(String text) {
@@ -520,6 +581,18 @@ class CombatController extends GetxController {
   void checkVictoryOrDefeat() {
     bool allDead = enemies.every((e) => e.isDead.value);
     if (allDead) {
+      if (isSandbox.value) {
+        addLog('SANDBOX VICTORY! Enemy defeated.');
+        Get.snackbar(
+          'PROVING GROUNDS VICTORY',
+          'Wave conquered in the Sandbox Arena!',
+          backgroundColor: const Color(0xFF162516),
+          colorText: const Color(0xFFD4CFC7),
+          borderRadius: 0,
+          margin: const EdgeInsets.all(12),
+        );
+        return;
+      }
       inCombat.value = false;
       addLog('VICTORY! You have vanquished the enemies.');
       
@@ -548,6 +621,18 @@ class CombatController extends GetxController {
 
     if (playerHp.value <= 0) {
       playerHp.value = 0;
+      if (isSandbox.value) {
+        addLog('SANDBOX DEFEAT... Overcome in the Proving Grounds.');
+        Get.snackbar(
+          'ARENA DEFEAT',
+          'You were overcome in the Sandbox Proving Grounds.',
+          backgroundColor: const Color(0xFF330B0B),
+          colorText: const Color(0xFFD4CFC7),
+          borderRadius: 0,
+          margin: const EdgeInsets.all(12),
+        );
+        return;
+      }
       inCombat.value = false;
       addLog('DEFEAT... You fell in battle.');
       
@@ -568,6 +653,7 @@ class CombatController extends GetxController {
 
   void escapeCombat() {
     inCombat.value = false;
+    isSandbox.value = false;
     addLog('You retreated from the battle.');
     Get.snackbar(
       'RETREAT',
