@@ -2,9 +2,12 @@ import 'character_class.dart';
 import 'attributes.dart';
 import 'loadout.dart';
 import 'vitals.dart';
+import 'combat_models.dart';
 
-class HeroCharacter {
+class HeroCharacter implements CombatDefinition {
+  @override
   final String id;
+  @override
   final String name;
   final String subtitle;
   final PersonalityClass characterClass;

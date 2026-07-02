@@ -4,10 +4,10 @@ import 'package:get/get.dart';
 import '../../states/navigation_state.dart';
 import '../city_game.dart';
 
-class Enemy extends PositionComponent with HasGameReference<CityGame> {
+class EnemySprite extends PositionComponent with HasGameReference<CityGame> {
   final double speed;
 
-  Enemy({required super.position, this.speed = 100.0}) : super(size: Vector2(48, 48));
+  EnemySprite({required super.position, this.speed = 100.0}) : super(size: Vector2(48, 48));
 
   @override
   void update(double dt) {

@@ -184,7 +184,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
   // Right panel battlefield
   Widget _buildBattlefield(
     CombatController controller,
-    List<Enemy> enemies,
+    List<ActiveEnemy> enemies,
     String? selectedEnemyId,
   ) {
     return Container(
@@ -241,7 +241,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
   // Lane containing enemies
   Widget _buildLaneRow({
     required String title,
-    required List<Enemy> laneEnemies,
+    required List<ActiveEnemy> laneEnemies,
     required String? selectedId,
     required Function(String) onTap,
     required CombatController controller,
@@ -414,6 +414,98 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
     );
   }
 
+  Widget _buildAllyCard(ActiveAlly ally, CombatController controller) {
+    final isDead = ally.isDead.value;
+    if (isDead) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 100,
+            height: 110,
+            decoration: BoxDecoration(
+              color: const Color(0xFF100D0A),
+              border: Border.all(
+                color: const Color(0xFF3A5F8A),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Image.asset(
+                    ally.imageAsset,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                  ),
+                ),
+                Container(
+                  color: const Color(0xFF1A1A1A),
+                  child: Column(
+                    children: [
+                      LinearProgressIndicator(
+                        value: ally.hp.value / ally.maxHp,
+                        backgroundColor: const Color(0xFF0A1A22),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF1E88E5),
+                        ),
+                        minHeight: 4,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        child: Text(
+                          '${ally.name.toUpperCase()} (${ally.hp.value}/${ally.maxHp})',
+                          style: VitruvianTypography.monospaceData(fontSize: 9),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (controller.lastHitEnemyId.value == ally.id && controller.enemyHitEventId.value > 0)
+            Positioned.fill(
+              key: ValueKey('ally_flash_${ally.id}_${controller.enemyHitEventId.value}'),
+              child: IgnorePointer(
+                child: Container(
+                  color: Colors.red.withValues(alpha: 0.4),
+                )
+                    .animate()
+                    .fadeIn(duration: 60.ms)
+                    .then()
+                    .fadeOut(duration: 300.ms),
+              ),
+            ),
+          if (controller.damagePopups.containsKey(ally.id))
+            Positioned(
+              top: -24,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  controller.damagePopups[ally.id]!,
+                  style: VitruvianTypography.monospaceData(
+                    fontSize: 16,
+                    color: controller.damagePopups[ally.id]!.contains('-')
+                        ? const Color(0xFFFF5555)
+                        : Colors.greenAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   // Player lane representation
   Widget _buildPlayerLane({
     required bool isFront,
@@ -421,6 +513,8 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
   }) {
     final playerLane = controller.playerLane.value;
     final isPlayerInThisLane = (isFront && playerLane == 'front') || (!isFront && playerLane == 'back');
+    final targetLaneStr = isFront ? 'front' : 'back';
+    final laneAllies = controller.allies.where((a) => a.lane.value == targetLaneStr && !a.isDead.value).toList();
 
     final playerState = Get.find<PlayerState>();
     final currentClass = playerState.characterClass.value;
@@ -440,7 +534,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
     return Stack(
       children: [
         // Move button in empty lane
-        if (!isPlayerInThisLane && controller.isPlayerTurn.value && controller.playerAp.value >= 1)
+        if (!isPlayerInThisLane && laneAllies.isEmpty && controller.isPlayerTurn.value && controller.playerAp.value >= 1)
           Center(
             child: TextButton.icon(
               style: TextButton.styleFrom(
@@ -457,131 +551,134 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
             ),
           ),
 
-        // Player card
-        if (isPlayerInThisLane)
+        // Player and Ally cards
+        if (isPlayerInThisLane || laneAllies.isNotEmpty)
           Center(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Shift Lane button next to character
-                if (controller.isPlayerTurn.value && controller.playerAp.value >= 1) ...[
-                  Tooltip(
-                    message: 'Shift lane (Costs 1 AP)',
-                    child: Material(
-                      color: const Color(0xFFC89B5D),
-                      shape: const CircleBorder(),
-                      elevation: 4,
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: controller.playerMove,
-                        child: Padding(
-                          padding: const EdgeInsets.all(10.0),
-                          child: Icon(
-                            isFront ? Icons.arrow_downward : Icons.arrow_upward,
-                            size: 18,
-                            color: Colors.black,
+                if (isPlayerInThisLane) ...[
+                  // Shift Lane button next to character
+                  if (controller.isPlayerTurn.value && controller.playerAp.value >= 1) ...[
+                    Tooltip(
+                      message: 'Shift lane (Costs 1 AP)',
+                      child: Material(
+                        color: const Color(0xFFC89B5D),
+                        shape: const CircleBorder(),
+                        elevation: 4,
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: controller.playerMove,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Icon(
+                              isFront ? Icons.arrow_downward : Icons.arrow_upward,
+                              size: 18,
+                              color: Colors.black,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                ],
+                    const SizedBox(width: 16),
+                  ],
 
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      width: 100,
-                      height: 110,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF100D0A),
-                        border: Border.all(
-                          color: VitruvianColors.sepiaUmber,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          // Gladiator artwork
-                          Expanded(
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                Image.asset(
-                                  classImageAsset,
-                                  fit: BoxFit.cover,
-                                ),
-                                // Defending visual indicator
-                                if (controller.isDefending.value)
-                                  Container(
-                                    color: Colors.blue.withValues(alpha: 0.2),
-                                    alignment: Alignment.center,
-                                    child: const Icon(
-                                      Icons.shield,
-                                      color: Colors.cyanAccent,
-                                      size: 40,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          
-                          // Small text label
-                          Container(
-                            color: const Color(0xFF1C140E),
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            alignment: Alignment.center,
-                            child: Text(
-                              'YOU',
-                              style: VitruvianTypography.serifTitle(fontSize: 11),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // ─── Red Flash Overlay (when enemy hits player) ───
-                    if (controller.lastHitEnemyId.value == 'player' && controller.enemyHitEventId.value > 0)
-                      Positioned(
-                        top: 0,
-                        left: 0,
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
                         width: 100,
                         height: 110,
-                        key: ValueKey('player_flash_${controller.enemyHitEventId.value}'),
-                        child: IgnorePointer(
-                          child: Container(
-                            color: Colors.red.withValues(alpha: 0.4),
-                          )
-                              .animate()
-                              .fadeIn(duration: 60.ms)
-                              .then()
-                              .fadeOut(duration: 300.ms),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF100D0A),
+                          border: Border.all(
+                            color: VitruvianColors.sepiaUmber,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            // Gladiator artwork
+                            Expanded(
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Image.asset(
+                                    classImageAsset,
+                                    fit: BoxFit.cover,
+                                  ),
+                                  // Defending visual indicator
+                                  if (controller.isDefending.value)
+                                    Container(
+                                      color: Colors.blue.withValues(alpha: 0.2),
+                                      alignment: Alignment.center,
+                                      child: const Icon(
+                                        Icons.shield,
+                                        color: Colors.cyanAccent,
+                                        size: 40,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            
+                            // Small text label
+                            Container(
+                              color: const Color(0xFF1C140E),
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'YOU',
+                                style: VitruvianTypography.serifTitle(fontSize: 11),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
-                    // Floating Damage / Heal Popups (kept for defend/item feedback)
-                    if (controller.damagePopups.containsKey('player'))
-                      Positioned(
-                        top: -24,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Text(
-                            controller.damagePopups['player']!,
-                            style: VitruvianTypography.monospaceData(
-                              fontSize: 16,
-                              color: controller.damagePopups['player']!.contains('-')
-                                  ? const Color(0xFFFF5555)
-                                  : Colors.greenAccent,
-                              fontWeight: FontWeight.bold,
+                      // ─── Red Flash Overlay (when enemy hits player) ───
+                      if (controller.lastHitEnemyId.value == 'player' && controller.enemyHitEventId.value > 0)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          width: 100,
+                          height: 110,
+                          key: ValueKey('player_flash_${controller.enemyHitEventId.value}'),
+                          child: IgnorePointer(
+                            child: Container(
+                              color: Colors.red.withValues(alpha: 0.4),
+                            )
+                                .animate()
+                                .fadeIn(duration: 60.ms)
+                                .then()
+                                .fadeOut(duration: 300.ms),
+                          ),
+                        ),
+
+                      // Floating Damage / Heal Popups (kept for defend/item feedback)
+                      if (controller.damagePopups.containsKey('player'))
+                        Positioned(
+                          top: -24,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Text(
+                              controller.damagePopups['player']!,
+                              style: VitruvianTypography.monospaceData(
+                                fontSize: 16,
+                                color: controller.damagePopups['player']!.contains('-')
+                                    ? const Color(0xFFFF5555)
+                                    : Colors.greenAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
+                for (final ally in laneAllies) _buildAllyCard(ally, controller),
               ],
             ),
           ),

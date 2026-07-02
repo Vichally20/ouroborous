@@ -227,13 +227,89 @@ class SandboxDungeonScreen extends StatelessWidget {
                         );
                       }),
                     ),
+
+                    const SizedBox(height: 24),
+                    _buildSectionTitle('3. COMBAT ALLY (PET / SUMMON)'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        InkWell(
+                          onTap: () => c.selectedAllyKey.value = null,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.all(12),
+                            width: 220,
+                            decoration: BoxDecoration(
+                              color: c.selectedAllyKey.value == null ? const Color(0xFF2E2214) : const Color(0xFF100E0C),
+                              border: Border.all(
+                                color: c.selectedAllyKey.value == null ? Colors.amberAccent : const Color(0xFF3A2C20),
+                                width: c.selectedAllyKey.value == null ? 2 : 1,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Solo (No Ally)',
+                                  style: VitruvianTypography.serifTitle(
+                                      fontSize: 15, color: c.selectedAllyKey.value == null ? Colors.amberAccent : Colors.white),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Fight 1v1 against the waves',
+                                  style: VitruvianTypography.monospaceData(fontSize: 10, color: Colors.white54),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        for (final allyKey in c.availableAllyKeys)
+                          Builder(builder: (_) {
+                            final tmpl = c.allyRoster[allyKey];
+                            if (tmpl == null) return const SizedBox.shrink();
+                            final isSel = c.selectedAllyKey.value == allyKey;
+                            return InkWell(
+                              onTap: () => c.selectedAllyKey.value = allyKey,
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.all(12),
+                                width: 220,
+                                decoration: BoxDecoration(
+                                  color: isSel ? const Color(0xFF2E2214) : const Color(0xFF100E0C),
+                                  border: Border.all(
+                                    color: isSel ? Colors.amberAccent : const Color(0xFF3A2C20),
+                                    width: isSel ? 2 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tmpl.name,
+                                      style: VitruvianTypography.serifTitle(
+                                          fontSize: 15, color: isSel ? Colors.amberAccent : Colors.white),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'HP: ${tmpl.maxHp} | STR: ${tmpl.strength} | DEF: ${tmpl.defense}',
+                                      style: VitruvianTypography.monospaceData(fontSize: 10, color: Colors.cyanAccent),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
                   ],
                 );
 
                 final rightCol = Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildSectionTitle('3. LIVE ATTRIBUTE TUNER'),
+                    _buildSectionTitle('4. LIVE ATTRIBUTE TUNER'),
                     const SizedBox(height: 8),
                     EtchedContainer(
                       padding: const EdgeInsets.all(16),

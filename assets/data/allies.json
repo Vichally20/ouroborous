@@ -1,0 +1,53 @@
+{
+  "shadow_hound": {
+    "name": "Shadow Hound",
+    "imageAsset": "assets/images/enemy_werewolf_black.png",
+    "stats": {
+      "maxHp": 40,
+      "maxStamina": 80,
+      "strength": 12,
+      "defense": 3,
+      "speed": 14
+    },
+    "ai_profile": {
+      "aggression": 0.85,
+      "self_preservation": 0.15,
+      "preferred_range": 0.0
+    },
+    "skills": ["bite"]
+  },
+  "iron_golem": {
+    "name": "Iron Golem",
+    "imageAsset": "assets/images/enemy_werewolf_silver.png",
+    "stats": {
+      "maxHp": 90,
+      "maxStamina": 60,
+      "strength": 14,
+      "defense": 8,
+      "speed": 6
+    },
+    "ai_profile": {
+      "aggression": 0.5,
+      "self_preservation": 0.5,
+      "preferred_range": 0.0
+    },
+    "skills": ["strike"]
+  },
+  "mercenary_scout": {
+    "name": "Mercenary Scout",
+    "imageAsset": "assets/images/player.png",
+    "stats": {
+      "maxHp": 45,
+      "maxStamina": 90,
+      "strength": 13,
+      "defense": 4,
+      "speed": 13
+    },
+    "ai_profile": {
+      "aggression": 0.7,
+      "self_preservation": 0.6,
+      "preferred_range": 1.0
+    },
+    "skills": ["strike"]
+  }
+}

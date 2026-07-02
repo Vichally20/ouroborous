@@ -13,7 +13,10 @@ class SandboxDungeonController extends GetxController {
   final phase = 'setup'.obs;
 
   // Bestiary & Hero reference
-  final bestiary = <String, Enemy>{}.obs;
+  final bestiary = <String, EnemyTemplate>{}.obs;
+  final allyRoster = <String, AllyTemplate>{}.obs;
+  final availableAllyKeys = <String>[].obs;
+  final selectedAllyKey = RxnString();
   final availableHeroes = <HeroCharacter>[].obs;
   final selectedHeroIndex = 0.obs;
 
@@ -87,7 +90,7 @@ class SandboxDungeonController extends GetxController {
   // 30-Wave Engine State
   final currentWave = 1.obs;
   final totalWaves = 30;
-  final currentEnemy = Rxn<Enemy>();
+  final currentEnemy = Rxn<ActiveEnemy>();
   final isWaveCompleted = false.obs;
   final isSandboxDefeat = false.obs;
   final isSandboxVictory = false.obs;
@@ -116,10 +119,22 @@ class SandboxDungeonController extends GetxController {
       final bestiaryJson = await rootBundle.loadString('assets/data/bestiary.json');
       final Map<String, dynamic> bMap = json.decode(bestiaryJson);
       for (final key in bMap.keys) {
-        bestiary[key] = Enemy.fromJson(key, bMap[key], 'front');
+        bestiary[key] = EnemyTemplate.fromJson(key, bMap[key]);
       }
     } catch (e) {
       debugPrint('Error loading sandbox bestiary: $e');
+    }
+
+    // Load ally roster
+    try {
+      final alliesJson = await rootBundle.loadString('assets/data/allies.json');
+      final Map<String, dynamic> aMap = json.decode(alliesJson);
+      for (final key in aMap.keys) {
+        allyRoster[key] = AllyTemplate.fromJson(key, aMap[key]);
+        availableAllyKeys.add(key);
+      }
+    } catch (e) {
+      debugPrint('Error loading sandbox allies: $e');
     }
   }
 
@@ -192,6 +207,7 @@ class SandboxDungeonController extends GetxController {
       weaponBonus: activeWeapon.statBonus,
       weaponRange: activeWeapon.weaponRange,
       enemy: enemy,
+      allyKey: selectedAllyKey.value,
       onNextWave: () => advanceSandboxWave(),
       onRetry: () => startDungeonRun(),
     );
@@ -218,6 +234,7 @@ class SandboxDungeonController extends GetxController {
         weaponBonus: activeWeapon.statBonus,
         weaponRange: activeWeapon.weaponRange,
         enemy: nextEnemy,
+        allyKey: selectedAllyKey.value,
         onNextWave: () => advanceSandboxWave(),
         onRetry: () => startDungeonRun(),
       );
@@ -236,24 +253,32 @@ class SandboxDungeonController extends GetxController {
     }
   }
 
-  Enemy createWaveEnemy(int wave) {
+  ActiveEnemy createWaveEnemy(int wave) {
     isWaveCompleted.value = false;
     final keys = bestiary.keys.toList();
     if (keys.isEmpty) {
-      final fallback = Enemy(
-        id: 'sandbox_guard_$wave',
-        name: 'Skull Island Gladiator (Wave $wave)',
+      final fallbackTmpl = const EnemyTemplate(
+        id: 'sandbox_guard',
+        name: 'Skull Island Gladiator',
         imageAsset: 'assets/images/enemy_werewolf_black.png',
-        maxHp: 50 + (wave * 15),
+        maxHp: 50,
         maxStamina: 100,
-        strength: 10 + (wave * 2),
-        defense: 4 + wave,
+        strength: 10,
+        defense: 4,
         speed: 10,
+        aiProfile: AiProfile(aggression: 0.8, selfPreservation: 0.2, preferredRange: 0.0),
+        availableSkills: ['bite'],
+      );
+      final fallback = ActiveEnemy(
+        instanceId: 'sandbox_guard_$wave',
+        template: fallbackTmpl,
+        nameOverride: 'Skull Island Gladiator (Wave $wave)',
+        maxHpOverride: 50 + (wave * 15),
+        strengthOverride: 10 + (wave * 2),
+        defenseOverride: 4 + wave,
         initialHp: 50 + (wave * 15),
         initialStamina: 100,
         initialLane: wave % 2 == 0 ? 'back' : 'front',
-        aiProfile: const AiProfile(aggression: 0.8, selfPreservation: 0.2, preferredRange: 0.0),
-        availableSkills: ['bite'],
       );
       currentEnemy.value = fallback;
       return fallback;
@@ -284,20 +309,17 @@ class SandboxDungeonController extends GetxController {
 
     final enemyLane = wave % 3 == 0 ? 'back' : 'front';
 
-    final created = Enemy(
-      id: 'wave_${wave}_${template.id}',
-      name: enemyName,
-      imageAsset: template.imageAsset,
-      maxHp: scaledHp,
-      maxStamina: template.maxStamina + (wave * 5),
-      strength: scaledStr,
-      defense: scaledDef,
-      speed: template.speed,
+    final created = ActiveEnemy(
+      instanceId: 'wave_${wave}_${template.id}',
+      template: template,
+      nameOverride: enemyName,
+      maxHpOverride: scaledHp,
+      maxStaminaOverride: template.maxStamina + (wave * 5),
+      strengthOverride: scaledStr,
+      defenseOverride: scaledDef,
       initialHp: scaledHp,
       initialStamina: template.maxStamina + (wave * 5),
       initialLane: enemyLane,
-      aiProfile: template.aiProfile,
-      availableSkills: template.availableSkills,
     );
     currentEnemy.value = created;
     addLog('─── WAVE $wave / $totalWaves ───');

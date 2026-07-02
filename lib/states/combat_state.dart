@@ -18,8 +18,9 @@ class CombatController extends GetxController {
   VoidCallback? onSandboxNextWave;
   VoidCallback? onSandboxRetry;
 
-  // Bestiary & Encounters
-  final RxMap<String, Enemy> bestiary = <String, Enemy>{}.obs;
+  // Bestiary, Allies & Encounters
+  final RxMap<String, EnemyTemplate> bestiary = <String, EnemyTemplate>{}.obs;
+  final RxMap<String, AllyTemplate> allyRoster = <String, AllyTemplate>{}.obs;
   final RxMap<String, dynamic> encounters = <String, dynamic>{}.obs;
 
   // Player combat vitals
@@ -45,7 +46,10 @@ class CombatController extends GetxController {
   final selectedEnemyId = RxnString();
 
   // Enemies list
-  final enemies = <Enemy>[].obs;
+  final enemies = <ActiveEnemy>[].obs;
+
+  // Allies list
+  final allies = <ActiveAlly>[].obs;
 
   // Combat Log feed
   final combatLogs = <String>[].obs;
@@ -74,7 +78,13 @@ class CombatController extends GetxController {
       final bestiaryJson = await rootBundle.loadString('assets/data/bestiary.json');
       final Map<String, dynamic> bMap = json.decode(bestiaryJson);
       for (final key in bMap.keys) {
-        bestiary[key] = Enemy.fromJson(key, bMap[key], 'front');
+        bestiary[key] = EnemyTemplate.fromJson(key, bMap[key]);
+      }
+
+      final alliesJson = await rootBundle.loadString('assets/data/allies.json');
+      final Map<String, dynamic> aMap = json.decode(alliesJson);
+      for (final key in aMap.keys) {
+        allyRoster[key] = AllyTemplate.fromJson(key, aMap[key]);
       }
 
       final encountersJson = await rootBundle.loadString('assets/data/encounters.json');
@@ -130,7 +140,7 @@ class CombatController extends GetxController {
     lastHitEnemyId.value = null;
 
     // 2. Populate enemies from encounter definition
-    final List<Enemy> spawnedEnemies = [];
+    final List<ActiveEnemy> spawnedEnemies = [];
     final List<dynamic> enemyList = encounter['enemies'];
     
     for (final eDef in enemyList) {
@@ -139,10 +149,38 @@ class CombatController extends GetxController {
       final lane = eDef['lane'];
       
       if (bestiary.containsKey(bestiaryId)) {
-        spawnedEnemies.add(bestiary[bestiaryId]!.clone(instanceId, lane));
+        final tmpl = bestiary[bestiaryId]!;
+        spawnedEnemies.add(ActiveEnemy(
+          instanceId: instanceId,
+          template: tmpl,
+          initialHp: tmpl.maxHp,
+          initialStamina: tmpl.maxStamina,
+          initialLane: lane,
+        ));
       }
     }
     enemies.value = spawnedEnemies;
+
+    final List<ActiveAlly> spawnedAllies = [];
+    final List<dynamic>? allyList = encounter['allies'];
+    if (allyList != null) {
+      for (final aDef in allyList) {
+        final allyId = aDef['ally_id'];
+        final instanceId = aDef['id'];
+        final lane = aDef['lane'] ?? 'front';
+        if (allyRoster.containsKey(allyId)) {
+          final tmpl = allyRoster[allyId]!;
+          spawnedAllies.add(ActiveAlly(
+            instanceId: instanceId,
+            template: tmpl,
+            initialHp: tmpl.maxHp,
+            initialStamina: tmpl.maxStamina,
+            initialLane: lane,
+          ));
+        }
+      }
+    }
+    allies.value = spawnedAllies;
 
     if (enemies.isNotEmpty) {
       selectedEnemyId.value = enemies[0].id;
@@ -167,7 +205,8 @@ class CombatController extends GetxController {
     required String weaponName,
     required int weaponBonus,
     required WeaponRange weaponRange,
-    required Enemy enemy,
+    required ActiveEnemy enemy,
+    String? allyKey,
     VoidCallback? onNextWave,
     VoidCallback? onRetry,
   }) {
@@ -203,6 +242,11 @@ class CombatController extends GetxController {
     lastHitEnemyId.value = null;
 
     enemies.value = [enemy];
+    allies.clear();
+    if (allyKey != null && allyRoster.containsKey(allyKey)) {
+      spawnAlly(allyKey, 'front');
+      addLog('Allied ${allyRoster[allyKey]!.name} joined the front line!');
+    }
     selectedEnemyId.value = enemy.id;
     currentVictoryNodeId.value = null;
 
@@ -436,11 +480,129 @@ class CombatController extends GetxController {
   void endPlayerTurn() {
     if (!isPlayerTurn.value) return;
     isPlayerTurn.value = false;
-    addLog('Turn ended. Enemies prepare to strike...');
+    addLog('Turn ended. Allies & Enemies prepare to strike...');
     
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      executeEnemyTurnSequence();
+    Future.delayed(const Duration(milliseconds: 600), () async {
+      await executeAllyTurnSequence();
+      await executeEnemyTurnSequence();
     });
+  }
+
+  void spawnAlly(String allyKey, [String lane = 'front']) {
+    if (allyRoster.containsKey(allyKey)) {
+      final tmpl = allyRoster[allyKey]!;
+      final instanceId = '${allyKey}_${DateTime.now().millisecondsSinceEpoch}';
+      allies.add(ActiveAlly(
+        instanceId: instanceId,
+        template: tmpl,
+        initialHp: tmpl.maxHp,
+        initialStamina: tmpl.maxStamina,
+        initialLane: lane,
+      ));
+      addLog('${tmpl.name} joins the fight on your side!');
+    }
+  }
+
+  Future<void> executeAllyTurnSequence() async {
+    for (var ally in allies) {
+      if (ally.isDead.value) continue;
+      if (!inCombat.value) return;
+
+      final livingEnemies = enemies.where((e) => !e.isDead.value).toList();
+      if (livingEnemies.isEmpty) return;
+
+      double scoreAttack = ally.aiProfile.aggression * 100.0;
+      double scoreAdvance = 0.0;
+      double scoreFlee = 0.0;
+
+      if (ally.hp.value < (ally.maxHp * 0.3)) {
+        scoreFlee = ally.aiProfile.selfPreservation * 100.0;
+      }
+
+      final bool isFrontEmpty = allies.where((a) => a.lane.value == 'front' && !a.isDead.value).isEmpty && playerLane.value != 'front';
+      if (ally.lane.value == 'back' && ally.aiProfile.preferredRange == 0.0) {
+        scoreAdvance = 100.0;
+      } else if (ally.lane.value == 'front' && ally.aiProfile.preferredRange > 0.0) {
+        scoreFlee += 50.0;
+      }
+      if (ally.lane.value == 'back' && isFrontEmpty && ally.aiProfile.preferredRange < 0.8) {
+        scoreAdvance += 150.0;
+      }
+
+      scoreAttack += _random.nextInt(20);
+      scoreFlee += _random.nextInt(20);
+      scoreAdvance += _random.nextInt(20);
+
+      if (scoreAdvance > scoreAttack && scoreAdvance > scoreFlee && ally.lane.value == 'back') {
+        ally.lane.value = 'front';
+        addLog('${ally.name} advances to the Front Line.');
+        await Future.delayed(const Duration(milliseconds: 800));
+      } else if (scoreFlee > scoreAttack && ally.lane.value == 'front') {
+        ally.lane.value = 'back';
+        addLog('${ally.name} retreats to the Back Line.');
+        await Future.delayed(const Duration(milliseconds: 800));
+      } else {
+        final target = livingEnemies[_random.nextInt(livingEnemies.length)];
+        final bool allyIsRanged = ally.aiProfile.preferredRange > 0.5;
+        final allyRange = allyIsRanged ? WeaponRange.ranged : WeaponRange.melee;
+
+        if (!canReachTarget(ally.lane.value, target.lane.value, allyRange)) {
+          if (ally.lane.value == 'back') {
+            ally.lane.value = 'front';
+            addLog('${ally.name} charges to the Front Line!');
+            await Future.delayed(const Duration(milliseconds: 800));
+          } else {
+            addLog('${ally.name} attacks from afar, but falls short.');
+            await Future.delayed(const Duration(milliseconds: 600));
+          }
+          checkVictoryOrDefeat();
+          continue;
+        }
+
+        final String chosenSkillId = ally.availableSkills.isNotEmpty
+            ? ally.availableSkills[_random.nextInt(ally.availableSkills.length)]
+            : 'strike';
+        final CombatSkill skill = SkillDictionary.getSkill(chosenSkillId);
+
+        int baseDmg = ally.strength + _random.nextInt(skill.maxDamage - skill.minDamage + 1) + (skill.minDamage - 10);
+        if (ally.lane.value == 'front') {
+          baseDmg = (baseDmg * skill.frontLineMultiplier).round();
+        } else if (ally.lane.value == 'back') {
+          baseDmg = (baseDmg * skill.backLineMultiplier * 0.6).round();
+        }
+        if (target.lane.value == 'back' && ally.lane.value == 'front') {
+          baseDmg = (baseDmg * 0.7).round();
+        }
+        baseDmg = (baseDmg - target.defense).clamp(1, 9999);
+
+        target.hp.value -= baseDmg;
+        showDamagePopup(target.id, '-$baseDmg HP');
+
+        if (target.hp.value <= 0) {
+          target.hp.value = 0;
+          target.isDead.value = true;
+          addLog('The ${target.name} collapses under ${ally.name}\'s attack!');
+          final nextLiving = enemies.firstWhereOrNull((e) => !e.isDead.value);
+          selectedEnemyId.value = nextLiving?.id;
+        }
+
+        final allyEvent = CombatEvent(
+          skillName: skill.name,
+          weaponName: ally.name,
+          targetId: target.id,
+          damageHits: [baseDmg],
+          isPlayerAction: true,
+        );
+        lastCombatEvent.value = allyEvent;
+        attackEventId.value++;
+        lastHitEnemyId.value = target.id;
+        enemyHitEventId.value++;
+
+        addLog('${ally.name} strikes ${target.name} with ${skill.name} for $baseDmg damage!');
+        await Future.delayed(const Duration(milliseconds: 1000));
+        checkVictoryOrDefeat();
+      }
+    }
   }
 
   Future<void> executeEnemyTurnSequence() async {
@@ -528,31 +690,70 @@ class CombatController extends GetxController {
 
         if (baseDmg < 1) baseDmg = 1;
 
-        playerHp.value -= baseDmg;
-        showDamagePopup('player', '-$baseDmg HP');
+        ActiveAlly? targetAlly;
+        final livingAllies = allies.where((a) => !a.isDead.value).toList();
+        final frontAllies = livingAllies.where((a) => a.lane.value == 'front').toList();
 
-        if (skill.healAmount > 0) {
-          enemy.hp.value = (enemy.hp.value + skill.healAmount).clamp(0, enemy.maxHp);
-          showDamagePopup(enemy.id, '+${skill.healAmount} HP');
+        if (enemyRange == WeaponRange.melee && playerLane.value == 'back' && frontAllies.isNotEmpty) {
+          targetAlly = frontAllies[_random.nextInt(frontAllies.length)];
+        } else if (_random.nextBool() && livingAllies.isNotEmpty) {
+          targetAlly = livingAllies[_random.nextInt(livingAllies.length)];
         }
 
-        // ─── Emit CombatEvent for enemy attack animation ───
-        final enemyEvent = CombatEvent(
-          skillName: skill.name,
-          weaponName: enemy.name,
-          targetId: 'player',
-          damageHits: [baseDmg],
-          isPlayerAction: false,
-        );
-        lastCombatEvent.value = enemyEvent;
-        attackEventId.value++;
-        lastHitEnemyId.value = 'player';
-        enemyHitEventId.value++;
+        if (targetAlly != null) {
+          targetAlly.hp.value -= baseDmg;
+          showDamagePopup(targetAlly.id, '-$baseDmg HP');
 
-        if (isDefending.value) {
-          addLog('The ${enemy.name} uses ${skill.name} on your shield for $baseDmg damage.');
+          if (targetAlly.hp.value <= 0) {
+            targetAlly.hp.value = 0;
+            targetAlly.isDead.value = true;
+            addLog('${targetAlly.name} has fallen in battle!');
+          }
+
+          if (skill.healAmount > 0) {
+            enemy.hp.value = (enemy.hp.value + skill.healAmount).clamp(0, enemy.maxHp);
+            showDamagePopup(enemy.id, '+${skill.healAmount} HP');
+          }
+
+          final enemyEvent = CombatEvent(
+            skillName: skill.name,
+            weaponName: enemy.name,
+            targetId: targetAlly.id,
+            damageHits: [baseDmg],
+            isPlayerAction: false,
+          );
+          lastCombatEvent.value = enemyEvent;
+          attackEventId.value++;
+          lastHitEnemyId.value = targetAlly.id;
+          enemyHitEventId.value++;
+
+          addLog('The ${enemy.name} uses ${skill.name} on ${targetAlly.name} for $baseDmg damage.');
         } else {
-          addLog('The ${enemy.name} uses ${skill.name} for $baseDmg ${skill.type.name} damage.');
+          playerHp.value -= baseDmg;
+          showDamagePopup('player', '-$baseDmg HP');
+
+          if (skill.healAmount > 0) {
+            enemy.hp.value = (enemy.hp.value + skill.healAmount).clamp(0, enemy.maxHp);
+            showDamagePopup(enemy.id, '+${skill.healAmount} HP');
+          }
+
+          final enemyEvent = CombatEvent(
+            skillName: skill.name,
+            weaponName: enemy.name,
+            targetId: 'player',
+            damageHits: [baseDmg],
+            isPlayerAction: false,
+          );
+          lastCombatEvent.value = enemyEvent;
+          attackEventId.value++;
+          lastHitEnemyId.value = 'player';
+          enemyHitEventId.value++;
+
+          if (isDefending.value) {
+            addLog('The ${enemy.name} uses ${skill.name} on your shield for $baseDmg damage.');
+          } else {
+            addLog('The ${enemy.name} uses ${skill.name} for $baseDmg ${skill.type.name} damage.');
+          }
         }
       }
 
@@ -575,6 +776,21 @@ class CombatController extends GetxController {
   }
 
   void checkVictoryOrDefeat() {
+    for (final e in enemies) {
+      if (!e.isDead.value && e.hp.value <= 0) {
+        e.hp.value = 0;
+        e.isDead.value = true;
+        addLog('The ${e.name} collapses!');
+      }
+    }
+    for (final a in allies) {
+      if (!a.isDead.value && a.hp.value <= 0) {
+        a.hp.value = 0;
+        a.isDead.value = true;
+        addLog('${a.name} has fallen in battle!');
+      }
+    }
+
     bool allDead = enemies.every((e) => e.isDead.value);
     if (allDead) {
       if (isSandbox.value) {
