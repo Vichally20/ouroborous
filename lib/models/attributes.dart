@@ -10,7 +10,7 @@ class CoreAttributes {
     this.dexterity = 10,
     this.intelligence = 10,
     this.constitution = 10,
-    this.insight = 10,
+    this.insight = 10, //lets make insight a skill stat to balance.
   });
 
   bool checkAttribute(String attr, int requirement) {

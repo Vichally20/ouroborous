@@ -440,7 +440,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
     return Stack(
       children: [
         // Move button in empty lane
-        if (!isPlayerInThisLane && controller.isPlayerTurn.value && !controller.hasMovedThisTurn.value && controller.playerAp.value >= 1)
+        if (!isPlayerInThisLane && controller.isPlayerTurn.value && controller.playerAp.value >= 1)
           Center(
             child: TextButton.icon(
               style: TextButton.styleFrom(
@@ -464,7 +464,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Shift Lane button next to character
-                if (controller.isPlayerTurn.value && !controller.hasMovedThisTurn.value && controller.playerAp.value >= 1) ...[
+                if (controller.isPlayerTurn.value && controller.playerAp.value >= 1) ...[
                   Tooltip(
                     message: 'Shift lane (Costs 1 AP)',
                     child: Material(

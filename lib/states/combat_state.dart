@@ -258,10 +258,6 @@ class CombatController extends GetxController {
   // Action 1: Move lane (costs 1 AP, 0 Stamina)
   void playerMove() {
     if (!isPlayerTurn.value || playerAp.value < 1) return;
-    if (hasMovedThisTurn.value) {
-      addLog('Cannot shift lanes again this turn.');
-      return;
-    }
 
     final newLane = playerLane.value == 'back' ? 'front' : 'back';
     playerLane.value = newLane;
