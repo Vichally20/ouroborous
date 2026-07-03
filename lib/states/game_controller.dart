@@ -27,8 +27,8 @@ class GameController extends GetxController {
     inventoryState = Get.put(InventoryState());
     navigationState = Get.put(NavigationState());
     settingsState = Get.put(SettingsState());
-    combatController = Get.put(CombatController());
     storyEngine = Get.put(StoryEngine());
+    combatController = Get.put(CombatController());
   }
 
   void selectHubTab(MainHubTab tab) {

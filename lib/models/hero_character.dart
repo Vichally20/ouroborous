@@ -15,6 +15,7 @@ class HeroCharacter implements CombatDefinition {
   final AnatomicalLoadout loadout;
   final Vitals vitals;
   final String description;
+  final List<String> availableSkills;
 
   HeroCharacter({
     required this.id,
@@ -25,5 +26,6 @@ class HeroCharacter implements CombatDefinition {
     required this.loadout,
     required this.vitals,
     required this.description,
-  });
+    List<String>? availableSkills,
+  }) : availableSkills = availableSkills ?? characterClass.availableSkills;
 }

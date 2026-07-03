@@ -9,6 +9,7 @@ import '../../states/player_state.dart';
 import '../../states/combat_state.dart';
 import '../../states/inventory_state.dart';
 import '../../models/combat_models.dart';
+import '../../models/skill.dart';
 import '../widgets/etched_container.dart';
 
 class CombatScreen extends StatefulWidget {
@@ -248,6 +249,17 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
   }) {
     return Stack(
       children: [
+        Positioned(
+          left: 12,
+          top: 6,
+          child: Text(
+            title.toUpperCase(),
+            style: VitruvianTypography.monospaceData(
+              fontSize: 10,
+              color: const Color(0xFF6E5D4F),
+            ),
+          ),
+        ),
         // Enemy cards
         Center(
           child: Row(
@@ -533,6 +545,17 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
 
     return Stack(
       children: [
+        Positioned(
+          left: 12,
+          top: 6,
+          child: Text(
+            isFront ? 'PLAYER FRONT LINE' : 'PLAYER BACK LINE',
+            style: VitruvianTypography.monospaceData(
+              fontSize: 10,
+              color: const Color(0xFF6E5D4F),
+            ),
+          ),
+        ),
         // Move button in empty lane
         if (!isPlayerInThisLane && laneAllies.isEmpty && controller.isPlayerTurn.value && controller.playerAp.value >= 1)
           Center(
@@ -838,7 +861,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
                   icon: Icons.shield,
                   borderColor: isPlayerTurn && playerAp > 0 ? VitruvianColors.sepiaUmber : const Color(0xFF201B15),
                   colorText: isPlayerTurn && playerAp > 0 ? const Color(0xFFE4DCD0) : Colors.white24,
-                  onTap: isPlayerTurn && playerAp > 0 ? controller.playerDefense : null,
+                  onTap: isPlayerTurn && playerAp > 0 ? controller.playerDefend : null,
                 ),
               ),
               const SizedBox(width: 10),
@@ -922,43 +945,53 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
                 final selectedEnemy = controller.enemies.firstWhereOrNull(
                   (e) => e.id == controller.selectedEnemyId.value,
                 );
-                final bool skill1InRange = selectedEnemy == null ||
-                    controller.canReachTarget(
-                      controller.playerLane.value,
-                      selectedEnemy.lane.value,
-                      controller.playerWeaponRange.value,
-                    );
 
-                return _buildSkillListItem(
-                  name: 'Skill 1: Blood Falchion Strike',
-                  desc: skill1InRange
-                      ? 'Inflicts 15-22 physical damage. Deals +50% damage if you are in the Front Line. Deals -30% from the Back Line.'
-                      : 'OUT OF RANGE — Move to Front Line or equip a ranged weapon.',
-                  ap: 1,
-                  stamina: 20,
-                  isEnabled: controller.playerStamina.value >= 20 && skill1InRange,
-                  onTap: () {
-                    Get.back(); // close sheet
-                    controller.playerAttack(1);
-                  },
+                return Column(
+                  children: controller.playerSkills.asMap().entries.map((entry) {
+                    final int idx = entry.key;
+                    final String skillId = entry.value;
+                    final skill = SkillDictionary.getSkill(skillId);
+
+                    final bool isTargetedEnemy = skill.target == SkillTarget.singleEnemy || skill.target == SkillTarget.allEnemies;
+                    final bool inRange = !isTargetedEnemy ||
+                        skill.type == SkillType.magical ||
+                        selectedEnemy == null ||
+                        controller.canReachTarget(
+                          controller.playerLane.value,
+                          selectedEnemy.lane.value,
+                          controller.playerWeaponRange.value,
+                        );
+
+                    String desc = skill.description;
+                    if (skill.minDamage > 0) {
+                      desc = 'Deals ${skill.minDamage}-${skill.maxDamage} ${skill.type.name} damage. $desc';
+                    }
+                    if (skill.effectDescription.isNotEmpty) {
+                      desc = '$desc (${skill.effectDescription})';
+                    }
+                    if (!inRange) {
+                      desc = 'OUT OF RANGE — Move to Front Line or equip a ranged weapon.\n$desc';
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: _buildSkillListItem(
+                        name: 'Skill ${idx + 1}: ${skill.name}',
+                        desc: desc,
+                        ap: skill.apCost,
+                        stamina: skill.staminaCost,
+                        isEnabled: controller.playerStamina.value >= skill.staminaCost && inRange,
+                        onTap: () {
+                          Get.back(); // close sheet
+                          controller.playerAttack(idx + 1);
+                        },
+                      ),
+                    );
+                  }).toList(),
                 );
               },
             ),
-            const SizedBox(height: 12),
-
-            // Skill 2
-            _buildSkillListItem(
-              name: 'Skill 2: Hermetic Firebolt',
-              desc: 'Launches alchemical plasma dealing 25-35 magical fire damage. Fully effective from any lane position.',
-              ap: 1,
-              stamina: 40,
-              isEnabled: controller.playerStamina.value >= 40,
-              onTap: () {
-                Get.back(); // close sheet
-                controller.playerAttack(2);
-              },
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 4),
 
             // Close
             ElevatedButton(

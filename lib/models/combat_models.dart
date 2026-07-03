@@ -40,6 +40,8 @@ abstract class CombatEntity {
   RxInt get stamina;
   RxString get lane; // 'front' or 'back'
   RxBool get isDead;
+  RxInt get bleedStacks;
+  RxInt get poisonStacks;
 }
 
 class EnemyTemplate implements CombatDefinition {
@@ -108,6 +110,10 @@ class ActiveEnemy implements CombatEntity {
   final RxString lane;
   @override
   final RxBool isDead;
+  @override
+  final RxInt bleedStacks = 0.obs;
+  @override
+  final RxInt poisonStacks = 0.obs;
 
   ActiveEnemy({
     required this.instanceId,
@@ -177,6 +183,10 @@ class ActiveHero implements CombatEntity {
   final RxString lane;
   @override
   final RxBool isDead;
+  @override
+  final RxInt bleedStacks = 0.obs;
+  @override
+  final RxInt poisonStacks = 0.obs;
 
   ActiveHero({
     required this.id,
@@ -261,6 +271,10 @@ class ActiveAlly implements CombatEntity {
   final RxString lane;
   @override
   final RxBool isDead;
+  @override
+  final RxInt bleedStacks = 0.obs;
+  @override
+  final RxInt poisonStacks = 0.obs;
 
   ActiveAlly({
     required this.instanceId,

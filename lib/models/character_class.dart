@@ -8,6 +8,7 @@ class PersonalityClass {
   final int baseDex;
   final int baseInt;
   final int baseCon;
+  final List<String> availableSkills;
 
   const PersonalityClass({
     required this.type,
@@ -17,6 +18,7 @@ class PersonalityClass {
     required this.baseDex,
     required this.baseInt,
     required this.baseCon,
+    this.availableSkills = const ['blood_falchion_strike', 'hermetic_firebolt'],
   });
 
   static const PersonalityClass warrior = PersonalityClass(
@@ -27,6 +29,7 @@ class PersonalityClass {
     baseDex: 10,
     baseInt: 8,
     baseCon: 14,
+    availableSkills: ['blood_falchion_strike', 'heavy_slash'],
   );
 
   static const PersonalityClass sorcerer = PersonalityClass(
@@ -37,6 +40,7 @@ class PersonalityClass {
     baseDex: 10,
     baseInt: 18,
     baseCon: 10,
+    availableSkills: ['hermetic_firebolt', 'blood_hex'],
   );
 
   static const PersonalityClass assassin = PersonalityClass(
@@ -47,5 +51,6 @@ class PersonalityClass {
     baseDex: 18,
     baseInt: 12,
     baseCon: 10,
+    availableSkills: ['shadow_swipe', 'blood_falchion_strike'],
   );
 }

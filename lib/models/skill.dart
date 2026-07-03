@@ -20,6 +20,7 @@ class CombatSkill {
   final int healAmount;
   final int staminaRestore;
   final String effectDescription;
+  final double multiplier;
 
   const CombatSkill({
     required this.id,
@@ -38,6 +39,7 @@ class CombatSkill {
     this.healAmount = 0,
     this.staminaRestore = 0,
     this.effectDescription = '',
+    this.multiplier = 1.0,
   });
 }
 
@@ -57,6 +59,7 @@ class SkillDictionary {
       frontLineMultiplier: 1.5,
       backLineMultiplier: 0.7,
       effectDescription: '+4 Bleed',
+      multiplier: 1.2,
     ),
     'hermetic_firebolt': const CombatSkill(
       id: 'hermetic_firebolt',
@@ -69,6 +72,7 @@ class SkillDictionary {
       minDamage: 25,
       maxDamage: 35,
       effectDescription: 'Burn Effect',
+      multiplier: 1.5,
     ),
     'shield_brace': const CombatSkill(
       id: 'shield_brace',
@@ -83,9 +87,22 @@ class SkillDictionary {
       maxDamage: 0,
       staminaRestore: 30,
       effectDescription: '+50% Defense',
+      multiplier: 0.0,
     ),
 
-    // ─── ENEMY SKILLS ───
+    // ─── ENEMY & ALLY SKILLS ───
+    'strike': const CombatSkill(
+      id: 'strike',
+      name: 'Standard Strike',
+      description: 'A standard melee attack.',
+      icon: Icons.flash_on,
+      apCost: 1,
+      staminaCost: 15,
+      type: SkillType.physical,
+      minDamage: 10,
+      maxDamage: 15,
+      multiplier: 0.8,
+    ),
     'bite': const CombatSkill(
       id: 'bite',
       name: 'Savage Bite',
@@ -98,6 +115,7 @@ class SkillDictionary {
       maxDamage: 18,
       frontLineMultiplier: 1.2,
       effectDescription: '+3 Bleed',
+      multiplier: 0.8,
     ),
     'lunge': const CombatSkill(
       id: 'lunge',
@@ -110,6 +128,7 @@ class SkillDictionary {
       minDamage: 14,
       maxDamage: 20,
       effectDescription: 'Gap Closer',
+      multiplier: 1.0,
     ),
     'shadow_swipe': const CombatSkill(
       id: 'shadow_swipe',
@@ -123,6 +142,7 @@ class SkillDictionary {
       maxDamage: 24,
       ignoresArmor: true,
       effectDescription: 'Ignores Defense',
+      multiplier: 1.2,
     ),
     'retreat': const CombatSkill(
       id: 'retreat',
@@ -136,6 +156,7 @@ class SkillDictionary {
       minDamage: 0,
       maxDamage: 0,
       effectDescription: 'Evasion + Back Line',
+      multiplier: 0.0,
     ),
     'alpha_howl': const CombatSkill(
       id: 'alpha_howl',
@@ -149,6 +170,7 @@ class SkillDictionary {
       minDamage: 0,
       maxDamage: 0,
       effectDescription: '+20% Pack Attack',
+      multiplier: 0.0,
     ),
     'heavy_slash': const CombatSkill(
       id: 'heavy_slash',
@@ -162,6 +184,7 @@ class SkillDictionary {
       maxDamage: 30,
       frontLineMultiplier: 1.3,
       effectDescription: 'High Knockback',
+      multiplier: 1.4,
     ),
     'blood_hex': const CombatSkill(
       id: 'blood_hex',
@@ -175,6 +198,7 @@ class SkillDictionary {
       maxDamage: 22,
       healAmount: 10,
       effectDescription: 'Life Drain (+10 HP)',
+      multiplier: 1.2,
     ),
     'crushing_blow': const CombatSkill(
       id: 'crushing_blow',
@@ -188,6 +212,7 @@ class SkillDictionary {
       maxDamage: 45,
       ignoresArmor: true,
       effectDescription: 'Shatters Armor & Stuns',
+      multiplier: 1.6,
     ),
   };
 
@@ -198,6 +223,7 @@ class SkillDictionary {
           name: _formatName(id),
           description: 'Standard combat ability.',
           icon: Icons.adjust,
+          multiplier: 1.0,
         );
   }
 

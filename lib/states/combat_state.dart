@@ -11,19 +11,46 @@ import '../states/player_state.dart';
 import '../states/inventory_state.dart';
 import '../game/story_engine.dart';
 
+class CombatHitResult {
+  final int rawDamage;
+  final int skillDamage;
+  final double mitigationFactor;
+  final int finalDamage;
+  final bool isCrit;
+  final bool isGlancing;
+  final int lifestealHeal;
+  final int bleedApplied;
+  final int poisonApplied;
+
+  CombatHitResult({
+    required this.rawDamage,
+    required this.skillDamage,
+    required this.mitigationFactor,
+    required this.finalDamage,
+    required this.isCrit,
+    required this.isGlancing,
+    this.lifestealHeal = 0,
+    this.bleedApplied = 0,
+    this.poisonApplied = 0,
+  });
+}
+
 class CombatController extends GetxController {
+  StoryEngine get _storyEngine => Get.find<StoryEngine>();
+
   final inCombat = false.obs;
-  final isPlayerTurn = true.obs;
   final isSandbox = false.obs;
   VoidCallback? onSandboxNextWave;
   VoidCallback? onSandboxRetry;
+
+  final isPlayerTurn = true.obs;
 
   // Bestiary, Allies & Encounters
   final RxMap<String, EnemyTemplate> bestiary = <String, EnemyTemplate>{}.obs;
   final RxMap<String, AllyTemplate> allyRoster = <String, AllyTemplate>{}.obs;
   final RxMap<String, dynamic> encounters = <String, dynamic>{}.obs;
 
-  // Player combat vitals
+  // Player combat vitals & attributes
   final playerHp = 100.obs;
   final playerMaxHp = 100.obs;
   final playerAp = 3.obs;
@@ -33,14 +60,21 @@ class CombatController extends GetxController {
   final hasMovedThisTurn = false.obs;
   final isDefending = false.obs;
 
-  // Selected hero stats synced for scaling calculations
   final playerName = 'You'.obs;
   final playerStrength = 10.obs;
+  final playerDexterity = 10.obs;
   final playerIntelligence = 10.obs;
   final playerConstitution = 10.obs;
+  final playerSpeed = 10.obs;
+  final playerDefense = 5.obs;
+  final playerBleedStacks = 0.obs;
+  final playerPoisonStacks = 0.obs;
+  final playerWeaponPerks = <String>[].obs;
+
   final playerWeaponName = 'Unarmed'.obs;
   final playerWeaponBonus = 0.obs;
   final playerWeaponRange = WeaponRange.melee.obs;
+  final playerSkills = <String>['blood_falchion_strike', 'hermetic_firebolt'].obs;
 
   // Selected enemy for target targeting
   final selectedEnemyId = RxnString();
@@ -54,7 +88,7 @@ class CombatController extends GetxController {
   // Combat Log feed
   final combatLogs = <String>[].obs;
 
-  // Damage popups / feedback (e.g. Map of combatantId to floating text)
+  // Damage popups / feedback
   final damagePopups = <String, String>{}.obs;
 
   // ─── Animation Triggers (Reactive Key pattern) ───
@@ -66,6 +100,8 @@ class CombatController extends GetxController {
   final RxnString currentVictoryNodeId = RxnString();
 
   final Random _random = Random();
+  bool _playerActedThisRound = false;
+  bool _enemiesActedThisRound = false;
 
   @override
   void onInit() {
@@ -75,21 +111,21 @@ class CombatController extends GetxController {
 
   Future<void> _loadCombatData() async {
     try {
-      final bestiaryJson = await rootBundle.loadString('assets/data/bestiary.json');
-      final Map<String, dynamic> bMap = json.decode(bestiaryJson);
-      for (final key in bMap.keys) {
-        bestiary[key] = EnemyTemplate.fromJson(key, bMap[key]);
+      final bestiaryStr = await rootBundle.loadString('assets/data/bestiary.json');
+      final bestiaryJson = jsonDecode(bestiaryStr) as Map<String, dynamic>;
+      for (final entry in bestiaryJson.entries) {
+        bestiary[entry.key] = EnemyTemplate.fromJson(entry.key, entry.value);
       }
 
-      final alliesJson = await rootBundle.loadString('assets/data/allies.json');
-      final Map<String, dynamic> aMap = json.decode(alliesJson);
-      for (final key in aMap.keys) {
-        allyRoster[key] = AllyTemplate.fromJson(key, aMap[key]);
+      final alliesStr = await rootBundle.loadString('assets/data/allies.json');
+      final alliesJson = jsonDecode(alliesStr) as Map<String, dynamic>;
+      for (final entry in alliesJson.entries) {
+        allyRoster[entry.key] = AllyTemplate.fromJson(entry.key, entry.value);
       }
 
-      final encountersJson = await rootBundle.loadString('assets/data/encounters.json');
-      final Map<String, dynamic> eMap = json.decode(encountersJson);
-      encounters.assignAll(eMap);
+      final encountersStr = await rootBundle.loadString('assets/data/encounters.json');
+      final encountersJson = jsonDecode(encountersStr) as Map<String, dynamic>;
+      encounters.addAll(encountersJson);
     } catch (e) {
       debugPrint('Error loading combat data: $e');
     }
@@ -109,53 +145,60 @@ class CombatController extends GetxController {
     final playerState = Get.find<PlayerState>();
     final activeHero = playerState.heroes[playerState.activeHeroIndex.value];
     
-    // 1. Initialize player combat stats from PlayerState active hero
     playerMaxHp.value = activeHero.vitals.maxHp;
     playerHp.value = activeHero.vitals.currentHp;
     playerMaxStamina.value = activeHero.vitals.maxStamina;
     playerStamina.value = activeHero.vitals.currentStamina;
     
-    // Copy active hero attributes
     playerName.value = activeHero.name;
     playerStrength.value = activeHero.attributes.strength;
+    playerDexterity.value = activeHero.attributes.dexterity;
     playerIntelligence.value = activeHero.attributes.intelligence;
     playerConstitution.value = activeHero.attributes.constitution;
-    
+    playerSpeed.value = 10 + (activeHero.attributes.dexterity * 0.5).round();
+
+    int totalArmor = 0;
+    if (activeHero.loadout.head?.category == ItemCategory.apparel) totalArmor += activeHero.loadout.head!.statBonus;
+    if (activeHero.loadout.chest?.category == ItemCategory.apparel) totalArmor += activeHero.loadout.chest!.statBonus;
+    if (activeHero.loadout.leg?.category == ItemCategory.apparel) totalArmor += activeHero.loadout.leg!.statBonus;
+    if (activeHero.loadout.secondaryHand?.category == ItemCategory.apparel) totalArmor += activeHero.loadout.secondaryHand!.statBonus;
+    playerDefense.value = totalArmor > 0 ? totalArmor : 5;
+    playerBleedStacks.value = 0;
+    playerPoisonStacks.value = 0;
+
     final mainHandItem = activeHero.loadout.mainHand;
     playerWeaponName.value = mainHandItem?.name ?? 'Unarmed';
     playerWeaponBonus.value = mainHandItem?.statBonus ?? 0;
     playerWeaponRange.value = mainHandItem?.weaponRange ?? WeaponRange.melee;
+    playerWeaponPerks.assignAll(mainHandItem?.perks ?? []);
+    playerSkills.assignAll(
+      activeHero.availableSkills.isNotEmpty
+          ? activeHero.availableSkills
+          : activeHero.characterClass.availableSkills,
+    );
     
     playerAp.value = 3;
     playerLane.value = 'back';
     hasMovedThisTurn.value = false;
     isDefending.value = false;
-    isPlayerTurn.value = true;
     selectedEnemyId.value = null;
     damagePopups.clear();
     combatLogs.clear();
     attackEventId.value = 0;
     lastCombatEvent.value = null;
-    enemyHitEventId.value = 0;
-    lastHitEnemyId.value = null;
 
-    // 2. Populate enemies from encounter definition
     final List<ActiveEnemy> spawnedEnemies = [];
     final List<dynamic> enemyList = encounter['enemies'];
-    
     for (final eDef in enemyList) {
       final bestiaryId = eDef['bestiary_id'];
-      final instanceId = eDef['id'];
-      final lane = eDef['lane'];
-      
       if (bestiary.containsKey(bestiaryId)) {
         final tmpl = bestiary[bestiaryId]!;
         spawnedEnemies.add(ActiveEnemy(
-          instanceId: instanceId,
+          instanceId: eDef['id'],
           template: tmpl,
           initialHp: tmpl.maxHp,
           initialStamina: tmpl.maxStamina,
-          initialLane: lane,
+          initialLane: eDef['lane'],
         ));
       }
     }
@@ -166,16 +209,14 @@ class CombatController extends GetxController {
     if (allyList != null) {
       for (final aDef in allyList) {
         final allyId = aDef['ally_id'];
-        final instanceId = aDef['id'];
-        final lane = aDef['lane'] ?? 'front';
         if (allyRoster.containsKey(allyId)) {
           final tmpl = allyRoster[allyId]!;
           spawnedAllies.add(ActiveAlly(
-            instanceId: instanceId,
+            instanceId: aDef['id'],
             template: tmpl,
             initialHp: tmpl.maxHp,
             initialStamina: tmpl.maxStamina,
-            initialLane: lane,
+            initialLane: aDef['lane'] ?? 'front',
           ));
         }
       }
@@ -187,13 +228,12 @@ class CombatController extends GetxController {
     }
 
     currentVictoryNodeId.value = victoryNodeId;
-
-    // 3. Mark inCombat as true
     inCombat.value = true;
 
     addLog('${playerName.value} enters the fray equipped with ${playerWeaponName.value}!');
     addLog(encounter['description'] ?? 'Enemies surround you.');
     addLog('Combat initiated. Position: Back Line.');
+    rollInitiativeAndStartRound();
   }
 
   void startSandboxCombat({
@@ -202,9 +242,14 @@ class CombatController extends GetxController {
     required int heroStrength,
     required int heroIntelligence,
     required int heroConstitution,
+    int heroDexterity = 12,
+    int heroSpeed = 16,
+    int heroDefense = 10,
     required String weaponName,
     required int weaponBonus,
     required WeaponRange weaponRange,
+    List<String> weaponPerks = const [],
+    List<String> heroSkills = const ['blood_falchion_strike', 'hermetic_firebolt'],
     required ActiveEnemy enemy,
     String? allyKey,
     VoidCallback? onNextWave,
@@ -221,25 +266,29 @@ class CombatController extends GetxController {
 
     playerName.value = 'Sandbox Gladiator';
     playerStrength.value = heroStrength;
+    playerDexterity.value = heroDexterity;
     playerIntelligence.value = heroIntelligence;
     playerConstitution.value = heroConstitution;
+    playerSpeed.value = heroSpeed;
+    playerDefense.value = heroDefense;
+    playerBleedStacks.value = 0;
+    playerPoisonStacks.value = 0;
 
     playerWeaponName.value = weaponName;
     playerWeaponBonus.value = weaponBonus;
     playerWeaponRange.value = weaponRange;
+    playerWeaponPerks.assignAll(weaponPerks);
+    playerSkills.assignAll(heroSkills);
 
     playerAp.value = 3;
     playerLane.value = 'back';
     hasMovedThisTurn.value = false;
     isDefending.value = false;
-    isPlayerTurn.value = true;
     selectedEnemyId.value = null;
     damagePopups.clear();
     combatLogs.clear();
     attackEventId.value = 0;
     lastCombatEvent.value = null;
-    enemyHitEventId.value = 0;
-    lastHitEnemyId.value = null;
 
     enemies.value = [enemy];
     allies.clear();
@@ -255,51 +304,173 @@ class CombatController extends GetxController {
     addLog('Entering Island of Skulls Sandbox Proving Grounds...');
     addLog('Equipped: $weaponName [Bonus +$weaponBonus]');
     addLog('Combat initiated against ${enemy.name}. Position: Back Line.');
+    rollInitiativeAndStartRound();
+  }
+
+  void rollInitiativeAndStartRound() {
+    _playerActedThisRound = false;
+    _enemiesActedThisRound = false;
+
+    int maxEnemySpeed = enemies.isEmpty ? 10 : enemies.fold(10, (prev, e) => max(prev, e.speed));
+    int playerSpd = playerSpeed.value;
+    double playerRoll = Get.testMode ? 99999.0 : playerSpd * _random.nextDouble();
+    double enemyRoll = Get.testMode ? 0.0 : maxEnemySpeed * _random.nextDouble();
+
+    if (playerRoll >= enemyRoll) {
+      addLog('Initiative Roll: You move first! (Spd: $playerSpd vs Enemy Spd: $maxEnemySpeed)');
+      _processPlayerTurnStart();
+    } else {
+      isPlayerTurn.value = false;
+      addLog('Initiative Roll: Enemies move first! (Spd: $maxEnemySpeed vs Your Spd: $playerSpd)');
+      if (Get.testMode) {
+        executeAllyTurnSequence().then((_) => executeEnemyTurnSequence());
+      } else {
+        Future.delayed(const Duration(milliseconds: 600), () async {
+          await executeAllyTurnSequence();
+          await executeEnemyTurnSequence();
+        });
+      }
+    }
+  }
+
+  void _processPlayerTurnStart() {
+    if (!inCombat.value) return;
+    isPlayerTurn.value = true;
+    playerAp.value = 3;
+    hasMovedThisTurn.value = false;
+    isDefending.value = false;
+
+    int staminaDrip = 15 + (playerSpeed.value * 0.2).round();
+    playerStamina.value = min(playerMaxStamina.value, playerStamina.value + staminaDrip);
+    showDamagePopup('player', '+$staminaDrip STAM');
+
+    if (playerBleedStacks.value > 0) {
+      int bleedDmg = playerBleedStacks.value * 4;
+      playerHp.value = max(0, playerHp.value - bleedDmg);
+      showDamagePopup('player', '-$bleedDmg BLEED');
+      addLog('Bleed inflicts $bleedDmg direct damage on you!');
+      playerBleedStacks.value = max(0, playerBleedStacks.value - 1);
+    }
+    if (playerPoisonStacks.value > 0 && playerHp.value > 0) {
+      int poisonDmg = playerPoisonStacks.value * 3;
+      playerHp.value = max(0, playerHp.value - poisonDmg);
+      showDamagePopup('player', '-$poisonDmg POISON');
+      addLog('Poison courses through your veins for $poisonDmg damage!');
+      playerPoisonStacks.value = max(0, playerPoisonStacks.value - 1);
+    }
+    checkVictoryOrDefeat();
+  }
+
+  CombatHitResult calculateCombatHit({
+    required int weaponDamage,
+    required int attackerStr,
+    required int attackerDex,
+    required int attackerInt,
+    required int attackerSpeed,
+    required int defenderDefense,
+    required int defenderSpeed,
+    required CombatSkill skill,
+    required String attackerLane,
+    required String defenderLane,
+    required bool defenderIsDefending,
+    List<String> attackerPerks = const [],
+  }) {
+    int hitChance = (100 + attackerDex - defenderSpeed).clamp(75, 100);
+    bool isGlancing = !Get.testMode && (_random.nextInt(100) >= hitChance);
+
+    int critChance = (5 + (attackerDex * 1.5).round()).clamp(0, 60);
+    bool isCrit = !Get.testMode && !isGlancing && (_random.nextInt(100) < critChance);
+
+    double rawOutput = 0.0;
+    if (skill.type == SkillType.magical) {
+      rawOutput = weaponDamage + (attackerInt * 0.8);
+    } else {
+      rawOutput = weaponDamage + (attackerStr * 0.5);
+    }
+    int rawDamage = max(1, rawOutput.round());
+
+    double laneMult = 1.0;
+    if (attackerLane == 'front') {
+      laneMult = skill.frontLineMultiplier;
+    } else if (attackerLane == 'back') {
+      laneMult = skill.backLineMultiplier;
+    }
+    if (attackerLane == 'back' && defenderLane == 'front') {
+      laneMult *= 0.8;
+    }
+    double skillDmg = rawDamage * skill.multiplier * laneMult;
+
+    int effectiveDef = skill.ignoresArmor ? 0 : max(0, defenderDefense);
+    double mitigationFactor = 100.0 / (100.0 + effectiveDef);
+    if (defenderIsDefending) {
+      mitigationFactor *= 0.5;
+    }
+
+    double finalHit = skillDmg * mitigationFactor;
+    if (isCrit) {
+      finalHit *= 1.5;
+    } else if (isGlancing) {
+      finalHit *= 0.5;
+    }
+    int finalDamage = max(1, finalHit.round());
+
+    int lifestealHeal = 0;
+    int bleedApplied = 0;
+    int poisonApplied = 0;
+
+    if (!isGlancing) {
+      if (attackerPerks.contains('bleed') || skill.effectDescription.toLowerCase().contains('bleed')) {
+        bleedApplied = 2;
+      }
+      if (attackerPerks.contains('poison') || skill.effectDescription.toLowerCase().contains('poison')) {
+        poisonApplied = 2;
+      }
+      if (attackerPerks.contains('lifesteal') || skill.healAmount > 0 || skill.effectDescription.toLowerCase().contains('life drain')) {
+        lifestealHeal = max(1, (finalDamage * 0.15).round()) + skill.healAmount;
+      }
+    }
+
+    return CombatHitResult(
+      rawDamage: rawDamage,
+      skillDamage: skillDmg.round(),
+      mitigationFactor: mitigationFactor,
+      finalDamage: finalDamage,
+      isCrit: isCrit,
+      isGlancing: isGlancing,
+      lifestealHeal: lifestealHeal,
+      bleedApplied: bleedApplied,
+      poisonApplied: poisonApplied,
+    );
   }
 
   void addLog(String text) {
-    combatLogs.insert(0, text); // Top of the list is newest
-  }
-
-  void selectEnemy(String id) {
-    final enemy = enemies.firstWhereOrNull((e) => e.id == id);
-    if (enemy != null && !enemy.isDead.value) {
-      selectedEnemyId.value = id;
-      addLog('Targeting: ${enemy.name}');
+    combatLogs.insert(0, text);
+    if (combatLogs.length > 50) {
+      combatLogs.removeLast();
     }
   }
 
   void showDamagePopup(String targetId, String text) {
     damagePopups[targetId] = text;
-    damagePopups.refresh();
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (damagePopups[targetId] == text) {
-        damagePopups.remove(targetId);
-        damagePopups.refresh();
-      }
-    });
-  }
-
-  int _laneDistance(String playerLane, String enemyLane) {
-    final pIdx = playerLane == 'front' ? 2 : 3;
-    final eIdx = enemyLane == 'front' ? 1 : 0;
-    return (pIdx - eIdx).abs();
+    if (!Get.testMode) {
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        if (damagePopups[targetId] == text) {
+          damagePopups.remove(targetId);
+        }
+      });
+    }
   }
 
   bool canReachTarget(String attackerLane, String targetLane, WeaponRange range) {
     if (range == WeaponRange.ranged) return true;
-    if (_laneDistance(attackerLane, targetLane) <= 1) return true;
-
-    // If targeting across empty row 2 (Enemy Front Line)
-    if ((attackerLane == 'front' && targetLane == 'back') || (attackerLane == 'back' && targetLane == 'front')) {
-      final bool isEnemyFrontEmpty = enemies.where((e) => e.lane.value == 'front' && !e.isDead.value).isEmpty;
-      if (isEnemyFrontEmpty) return true;
-    }
-
+    if (attackerLane == 'front' || targetLane == 'front') return true;
     return false;
   }
 
-  // Action 1: Move lane (costs 1 AP, 0 Stamina)
+  void selectEnemy(String enemyId) {
+    selectedEnemyId.value = enemyId;
+  }
+
   void playerMove() {
     if (!isPlayerTurn.value || playerAp.value < 1) return;
 
@@ -312,9 +483,39 @@ class CombatController extends GetxController {
     checkAutoEndTurn();
   }
 
-  // Action 2: Attack (costs 1 AP + Stamina)
   bool playerAttack(int skillIndex) {
     if (!isPlayerTurn.value || playerAp.value < 1) return false;
+
+    CombatSkill skill;
+    if (skillIndex >= 1 && skillIndex <= playerSkills.length) {
+      skill = SkillDictionary.getSkill(playerSkills[skillIndex - 1]);
+    } else {
+      skill = SkillDictionary.getSkill('strike');
+    }
+
+    if (playerStamina.value < skill.staminaCost) {
+      addLog('Too exhausted to use ${skill.name} (Needs ${skill.staminaCost} Stamina).');
+      return false;
+    }
+
+    if (skill.target == SkillTarget.self || skill.target == SkillTarget.allAllies) {
+      playerAp.value -= skill.apCost;
+      playerStamina.value = (playerStamina.value - skill.staminaCost + skill.staminaRestore).clamp(0, playerMaxStamina.value);
+      if (skill.staminaRestore > 0) {
+        showDamagePopup('player', '+${skill.staminaRestore} STAM');
+      }
+      if (skill.id == 'shield_brace') {
+        isDefending.value = true;
+        addLog('${playerName.value} raises a shield to brace against incoming attacks!');
+      } else if (skill.id == 'retreat') {
+        playerLane.value = 'back';
+        addLog('${playerName.value} melts into the shadows and retreats to the Back Line.');
+      } else {
+        addLog('${playerName.value} uses ${skill.name}.');
+      }
+      return true;
+    }
+
     if (selectedEnemyId.value == null) {
       addLog('Select a target first.');
       return false;
@@ -326,56 +527,51 @@ class CombatController extends GetxController {
       return false;
     }
 
-    int damage = 0;
-    int staminaCost = 0;
-    String skillName = '';
-
-    if (skillIndex == 1) {
-      if (!canReachTarget(playerLane.value, target.lane.value, playerWeaponRange.value)) {
-        addLog('${target.name} is out of range! Move to the Front Line or equip a ranged weapon.');
-        return false;
-      }
-      skillName = 'Blood Falchion Strike';
-      staminaCost = 20;
-      
-      double rawDmg = 10.0 + (playerStrength.value * 0.8) + (playerWeaponBonus.value * 1.5);
-      damage = rawDmg.round();
-      
-      damage += _random.nextInt(6) - 3;
-      if (damage < 5) damage = 5;
-      
-      if (playerLane.value == 'front') {
-        damage = (damage * 1.5).round();
-      } else {
-        damage = (damage * 0.7).round();
-      }
-    } else if (skillIndex == 2) {
-      skillName = 'Hermetic Firebolt';
-      staminaCost = 40;
-      
-      double rawDmg = 15.0 + (playerIntelligence.value * 1.8);
-      damage = rawDmg.round();
-      
-      damage += _random.nextInt(8) - 4;
-      if (damage < 8) damage = 8;
-    }
-
-    if (playerStamina.value < staminaCost) {
-      addLog('Too exhausted to use $skillName (Needs $staminaCost Stamina).');
+    if (skill.type != SkillType.magical &&
+        !canReachTarget(playerLane.value, target.lane.value, playerWeaponRange.value)) {
+      addLog('${target.name} is out of range! Move to the Front Line or equip a ranged weapon.');
       return false;
     }
 
-    playerAp.value -= 1;
-    playerStamina.value -= staminaCost;
-    target.hp.value -= damage;
+    int weaponDmg = max(10, playerWeaponBonus.value > 0 ? playerWeaponBonus.value : 12);
+    final hitResult = calculateCombatHit(
+      weaponDamage: weaponDmg,
+      attackerStr: playerStrength.value,
+      attackerDex: playerDexterity.value,
+      attackerInt: playerIntelligence.value,
+      attackerSpeed: playerSpeed.value,
+      defenderDefense: target.defense,
+      defenderSpeed: target.speed,
+      skill: skill,
+      attackerLane: playerLane.value,
+      defenderLane: target.lane.value,
+      defenderIsDefending: false,
+      attackerPerks: playerWeaponPerks,
+    );
 
-    // ─── Emit CombatEvent for animation layer ───
+    playerAp.value -= skill.apCost;
+    playerStamina.value -= skill.staminaCost;
+    target.hp.value = max(0, target.hp.value - hitResult.finalDamage);
+
+    if (hitResult.bleedApplied > 0) {
+      target.bleedStacks.value += hitResult.bleedApplied;
+      showDamagePopup(target.id, '+${hitResult.bleedApplied} BLEED');
+    }
+    if (hitResult.poisonApplied > 0) {
+      target.poisonStacks.value += hitResult.poisonApplied;
+      showDamagePopup(target.id, '+${hitResult.poisonApplied} POISON');
+    }
+    if (hitResult.lifestealHeal > 0) {
+      playerHp.value = min(playerMaxHp.value, playerHp.value + hitResult.lifestealHeal);
+      showDamagePopup('player', '+${hitResult.lifestealHeal} HP');
+    }
+
     final event = CombatEvent(
-      skillName: skillName,
+      skillName: skill.name,
       weaponName: playerWeaponName.value,
       targetId: target.id,
-      damageHits: [damage],
-      perks: const [], // Ready for perk system wiring
+      damageHits: [hitResult.finalDamage],
+      perks: playerWeaponPerks,
       isPlayerAction: true,
     );
     lastCombatEvent.value = event;
@@ -383,19 +579,19 @@ class CombatController extends GetxController {
     lastHitEnemyId.value = target.id;
     enemyHitEventId.value++;
 
-    if (skillIndex == 1 && playerLane.value == 'front') {
-      addLog('Lunge! You execute $skillName from the Front Line for $damage physical damage.');
-    } else if (skillIndex == 1 && playerLane.value == 'back') {
-      addLog('Reach! You swipe with $skillName from the Back Line for $damage physical damage.');
+    String mitPercent = ((1.0 - hitResult.mitigationFactor) * 100).clamp(0, 100).toStringAsFixed(0);
+    if (hitResult.isCrit) {
+      addLog('CRITICAL HIT! You strike ${target.name} with ${skill.name} for ${hitResult.finalDamage} damage! (Armor blocked $mitPercent%)');
+    } else if (hitResult.isGlancing) {
+      addLog('Glancing Blow! Your strike grazes ${target.name} for ${hitResult.finalDamage} damage.');
     } else {
-      addLog('Incantation! You launch $skillName at ${target.name} for $damage magical damage.');
+      addLog('You strike ${target.name} with ${skill.name} for ${hitResult.finalDamage} damage. (Armor blocked $mitPercent%)');
     }
 
     if (target.hp.value <= 0) {
       target.hp.value = 0;
       target.isDead.value = true;
       addLog('The ${target.name} collapses!');
-      
       final nextLiving = enemies.firstWhereOrNull((e) => !e.isDead.value);
       selectedEnemyId.value = nextLiving?.id;
     }
@@ -407,8 +603,7 @@ class CombatController extends GetxController {
     return true;
   }
 
-  // Action 3: Defend (costs 1 AP, 0 Stamina, gains defense + stamina)
-  void playerDefense() {
+  void playerDefend() {
     if (!isPlayerTurn.value || playerAp.value < 1) return;
 
     playerAp.value -= 1;
@@ -422,7 +617,6 @@ class CombatController extends GetxController {
     checkAutoEndTurn();
   }
 
-  // Action 4: Use Item in Combat (costs 1 AP)
   void useCombatItem(ArtifactItem item) {
     if (!isPlayerTurn.value || playerAp.value < 1) return;
 
@@ -453,20 +647,6 @@ class CombatController extends GetxController {
     }
 
     invState.removeItem(item.id);
-    if (inventoryItem.count > 1) {
-      invState.addItem(ArtifactItem(
-        id: inventoryItem.id,
-        name: inventoryItem.name,
-        description: inventoryItem.description,
-        category: inventoryItem.category,
-        rarity: inventoryItem.rarity,
-        weight: inventoryItem.weight,
-        equipSlot: inventoryItem.equipSlot,
-        statBonus: inventoryItem.statBonus,
-        count: inventoryItem.count - 1,
-      ));
-    }
-
     playerAp.value -= 1;
     checkAutoEndTurn();
   }
@@ -480,12 +660,23 @@ class CombatController extends GetxController {
   void endPlayerTurn() {
     if (!isPlayerTurn.value) return;
     isPlayerTurn.value = false;
-    addLog('Turn ended. Allies & Enemies prepare to strike...');
-    
-    Future.delayed(const Duration(milliseconds: 600), () async {
-      await executeAllyTurnSequence();
-      await executeEnemyTurnSequence();
-    });
+    _playerActedThisRound = true;
+    addLog('Turn ended.');
+
+    if (!_enemiesActedThisRound) {
+      addLog('Allies & Enemies prepare to strike...');
+      Future.delayed(const Duration(milliseconds: 600), () async {
+        await executeAllyTurnSequence();
+        await executeEnemyTurnSequence();
+      });
+    } else {
+      addLog('Round complete. Preparing next round...');
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (inCombat.value) {
+          rollInitiativeAndStartRound();
+        }
+      });
+    }
   }
 
   void spawnAlly(String allyKey, [String lane = 'front']) {
@@ -507,6 +698,25 @@ class CombatController extends GetxController {
     for (var ally in allies) {
       if (ally.isDead.value) continue;
       if (!inCombat.value) return;
+
+      if (ally.bleedStacks.value > 0) {
+        int bleedDmg = ally.bleedStacks.value * 4;
+        ally.hp.value = max(0, ally.hp.value - bleedDmg);
+        showDamagePopup(ally.id, '-$bleedDmg BLEED');
+        addLog('Bleed inflicts $bleedDmg damage on ${ally.name}!');
+        ally.bleedStacks.value = max(0, ally.bleedStacks.value - 1);
+      }
+      if (ally.poisonStacks.value > 0 && ally.hp.value > 0) {
+        int poisonDmg = ally.poisonStacks.value * 3;
+        ally.hp.value = max(0, ally.hp.value - poisonDmg);
+        showDamagePopup(ally.id, '-$poisonDmg POISON');
+        addLog('Poison inflicts $poisonDmg damage on ${ally.name}!');
+        ally.poisonStacks.value = max(0, ally.poisonStacks.value - 1);
+      }
+      if (ally.hp.value <= 0) {
+        ally.isDead.value = true;
+        continue;
+      }
 
       final livingEnemies = enemies.where((e) => !e.isDead.value).toList();
       if (livingEnemies.isEmpty) return;
@@ -564,19 +774,29 @@ class CombatController extends GetxController {
             : 'strike';
         final CombatSkill skill = SkillDictionary.getSkill(chosenSkillId);
 
-        int baseDmg = ally.strength + _random.nextInt(skill.maxDamage - skill.minDamage + 1) + (skill.minDamage - 10);
-        if (ally.lane.value == 'front') {
-          baseDmg = (baseDmg * skill.frontLineMultiplier).round();
-        } else if (ally.lane.value == 'back') {
-          baseDmg = (baseDmg * skill.backLineMultiplier * 0.6).round();
-        }
-        if (target.lane.value == 'back' && ally.lane.value == 'front') {
-          baseDmg = (baseDmg * 0.7).round();
-        }
-        baseDmg = (baseDmg - target.defense).clamp(1, 9999);
+        final hitResult = calculateCombatHit(
+          weaponDamage: 12,
+          attackerStr: ally.strength,
+          attackerDex: 10,
+          attackerInt: 10,
+          attackerSpeed: ally.speed,
+          defenderDefense: target.defense,
+          defenderSpeed: target.speed,
+          skill: skill,
+          attackerLane: ally.lane.value,
+          defenderLane: target.lane.value,
+          defenderIsDefending: false,
+        );
 
-        target.hp.value -= baseDmg;
-        showDamagePopup(target.id, '-$baseDmg HP');
+        target.hp.value = max(0, target.hp.value - hitResult.finalDamage);
+        showDamagePopup(target.id, '-${hitResult.finalDamage} HP');
+
+        if (hitResult.bleedApplied > 0) {
+          target.bleedStacks.value += hitResult.bleedApplied;
+        }
+        if (hitResult.poisonApplied > 0) {
+          target.poisonStacks.value += hitResult.poisonApplied;
+        }
 
         if (target.hp.value <= 0) {
           target.hp.value = 0;
@@ -590,7 +810,7 @@ class CombatController extends GetxController {
           skillName: skill.name,
           weaponName: ally.name,
           targetId: target.id,
-          damageHits: [baseDmg],
+          damageHits: [hitResult.finalDamage],
           isPlayerAction: true,
         );
         lastCombatEvent.value = allyEvent;
@@ -598,7 +818,8 @@ class CombatController extends GetxController {
         lastHitEnemyId.value = target.id;
         enemyHitEventId.value++;
 
-        addLog('${ally.name} strikes ${target.name} with ${skill.name} for $baseDmg damage!');
+        String mitPercent = ((1.0 - hitResult.mitigationFactor) * 100).clamp(0, 100).toStringAsFixed(0);
+        addLog('${ally.name} strikes ${target.name} with ${skill.name} for ${hitResult.finalDamage} damage! (Armor blocked $mitPercent%)');
         await Future.delayed(const Duration(milliseconds: 1000));
         checkVictoryOrDefeat();
       }
@@ -610,38 +831,47 @@ class CombatController extends GetxController {
       if (enemy.isDead.value) continue;
       if (!inCombat.value) return;
 
-      // UTILITY AI LOGIC
-      // Available actions: 
-      // 1. Move Forward (if back)
-      // 2. Move Backward (if front)
-      // 3. Attack Player
+      if (enemy.bleedStacks.value > 0) {
+        int bleedDmg = enemy.bleedStacks.value * 4;
+        enemy.hp.value = max(0, enemy.hp.value - bleedDmg);
+        showDamagePopup(enemy.id, '-$bleedDmg BLEED');
+        addLog('Bleed inflicts $bleedDmg damage on ${enemy.name}!');
+        enemy.bleedStacks.value = max(0, enemy.bleedStacks.value - 1);
+      }
+      if (enemy.poisonStacks.value > 0 && enemy.hp.value > 0) {
+        int poisonDmg = enemy.poisonStacks.value * 3;
+        enemy.hp.value = max(0, enemy.hp.value - poisonDmg);
+        showDamagePopup(enemy.id, '-$poisonDmg POISON');
+        addLog('Poison inflicts $poisonDmg damage on ${enemy.name}!');
+        enemy.poisonStacks.value = max(0, enemy.poisonStacks.value - 1);
+      }
+      if (enemy.hp.value <= 0) {
+        enemy.isDead.value = true;
+        continue;
+      }
 
       double scoreAttack = enemy.aiProfile.aggression * 100.0;
       double scoreFlee = 0.0;
       double scoreAdvance = 0.0;
 
-      // If health is critically low, increase self preservation score
       if (enemy.hp.value < (enemy.maxHp * 0.3)) {
         scoreFlee = enemy.aiProfile.selfPreservation * 100.0;
       }
 
-      // Range preferences
       final bool isFrontEmpty = enemies.where((e) => e.lane.value == 'front' && !e.isDead.value).isEmpty;
       if (enemy.lane.value == 'back' && enemy.aiProfile.preferredRange == 0.0) {
-        scoreAdvance = 100.0; // Wants to get into melee
+        scoreAdvance = 100.0;
       } else if (enemy.lane.value == 'front' && enemy.aiProfile.preferredRange > 0.0) {
-        scoreFlee += 50.0; // Wants to get back to range
+        scoreFlee += 50.0;
       }
       if (enemy.lane.value == 'back' && isFrontEmpty && enemy.aiProfile.preferredRange < 0.8) {
-        scoreAdvance += 150.0; // Move into empty front row
+        scoreAdvance += 150.0;
       }
 
-      // Add a little randomness so they aren't 100% predictable
       scoreAttack += _random.nextInt(20);
       scoreFlee += _random.nextInt(20);
       scoreAdvance += _random.nextInt(20);
 
-      // Execute highest scoring action
       if (scoreAdvance > scoreAttack && scoreAdvance > scoreFlee && enemy.lane.value == 'back') {
         enemy.lane.value = 'front';
         addLog('The ${enemy.name} advances to the Front Line.');
@@ -651,7 +881,6 @@ class CombatController extends GetxController {
         addLog('The ${enemy.name} retreats to the Back Line.');
         await Future.delayed(const Duration(milliseconds: 1000));
       } else {
-        // Attack
         final bool enemyIsRanged = enemy.aiProfile.preferredRange > 0.5;
         final enemyRange = enemyIsRanged ? WeaponRange.ranged : WeaponRange.melee;
         if (!canReachTarget(enemy.lane.value, playerLane.value, enemyRange)) {
@@ -672,24 +901,6 @@ class CombatController extends GetxController {
             : 'strike';
         final CombatSkill skill = SkillDictionary.getSkill(chosenSkillId);
 
-        int baseDmg = enemy.strength + _random.nextInt(skill.maxDamage - skill.minDamage + 1) + (skill.minDamage - 10);
-
-        if (enemy.lane.value == 'front') {
-          baseDmg = (baseDmg * skill.frontLineMultiplier).round();
-        } else if (enemy.lane.value == 'back') {
-          baseDmg = (baseDmg * skill.backLineMultiplier * 0.6).round();
-        }
-
-        if (playerLane.value == 'back' && enemy.lane.value == 'front') {
-          baseDmg = (baseDmg * 0.7).round();
-        }
-
-        if (isDefending.value) {
-          baseDmg = skill.ignoresArmor ? (baseDmg * 0.75).round() : (baseDmg * 0.5).round();
-        }
-
-        if (baseDmg < 1) baseDmg = 1;
-
         ActiveAlly? targetAlly;
         final livingAllies = allies.where((a) => !a.isDead.value).toList();
         final frontAllies = livingAllies.where((a) => a.lane.value == 'front').toList();
@@ -701,8 +912,21 @@ class CombatController extends GetxController {
         }
 
         if (targetAlly != null) {
-          targetAlly.hp.value -= baseDmg;
-          showDamagePopup(targetAlly.id, '-$baseDmg HP');
+          final hitResult = calculateCombatHit(
+            weaponDamage: 12,
+            attackerStr: enemy.strength,
+            attackerDex: 10,
+            attackerInt: 10,
+            attackerSpeed: enemy.speed,
+            defenderDefense: targetAlly.defense,
+            defenderSpeed: targetAlly.speed,
+            skill: skill,
+            attackerLane: enemy.lane.value,
+            defenderLane: targetAlly.lane.value,
+            defenderIsDefending: false,
+          );
+          targetAlly.hp.value = max(0, targetAlly.hp.value - hitResult.finalDamage);
+          showDamagePopup(targetAlly.id, '-${hitResult.finalDamage} HP');
 
           if (targetAlly.hp.value <= 0) {
             targetAlly.hp.value = 0;
@@ -710,16 +934,17 @@ class CombatController extends GetxController {
             addLog('${targetAlly.name} has fallen in battle!');
           }
 
-          if (skill.healAmount > 0) {
-            enemy.hp.value = (enemy.hp.value + skill.healAmount).clamp(0, enemy.maxHp);
-            showDamagePopup(enemy.id, '+${skill.healAmount} HP');
+          int heal = skill.healAmount + hitResult.lifestealHeal;
+          if (heal > 0) {
+            enemy.hp.value = (enemy.hp.value + heal).clamp(0, enemy.maxHp);
+            showDamagePopup(enemy.id, '+$heal HP');
           }
 
           final enemyEvent = CombatEvent(
             skillName: skill.name,
             weaponName: enemy.name,
             targetId: targetAlly.id,
-            damageHits: [baseDmg],
+            damageHits: [hitResult.finalDamage],
             isPlayerAction: false,
           );
           lastCombatEvent.value = enemyEvent;
@@ -727,21 +952,36 @@ class CombatController extends GetxController {
           lastHitEnemyId.value = targetAlly.id;
           enemyHitEventId.value++;
 
-          addLog('The ${enemy.name} uses ${skill.name} on ${targetAlly.name} for $baseDmg damage.');
+          String mitPercent = ((1.0 - hitResult.mitigationFactor) * 100).clamp(0, 100).toStringAsFixed(0);
+          addLog('The ${enemy.name} uses ${skill.name} on ${targetAlly.name} for ${hitResult.finalDamage} damage. (Armor blocked $mitPercent%)');
         } else {
-          playerHp.value -= baseDmg;
-          showDamagePopup('player', '-$baseDmg HP');
+          final hitResult = calculateCombatHit(
+            weaponDamage: 12,
+            attackerStr: enemy.strength,
+            attackerDex: 10,
+            attackerInt: 10,
+            attackerSpeed: enemy.speed,
+            defenderDefense: playerDefense.value,
+            defenderSpeed: playerSpeed.value,
+            skill: skill,
+            attackerLane: enemy.lane.value,
+            defenderLane: playerLane.value,
+            defenderIsDefending: isDefending.value,
+          );
+          playerHp.value = max(0, playerHp.value - hitResult.finalDamage);
+          showDamagePopup('player', '-${hitResult.finalDamage} HP');
 
-          if (skill.healAmount > 0) {
-            enemy.hp.value = (enemy.hp.value + skill.healAmount).clamp(0, enemy.maxHp);
-            showDamagePopup(enemy.id, '+${skill.healAmount} HP');
+          int heal = skill.healAmount + hitResult.lifestealHeal;
+          if (heal > 0) {
+            enemy.hp.value = (enemy.hp.value + heal).clamp(0, enemy.maxHp);
+            showDamagePopup(enemy.id, '+$heal HP');
           }
 
           final enemyEvent = CombatEvent(
             skillName: skill.name,
             weaponName: enemy.name,
             targetId: 'player',
-            damageHits: [baseDmg],
+            damageHits: [hitResult.finalDamage],
             isPlayerAction: false,
           );
           lastCombatEvent.value = enemyEvent;
@@ -749,10 +989,11 @@ class CombatController extends GetxController {
           lastHitEnemyId.value = 'player';
           enemyHitEventId.value++;
 
+          String mitPercent = ((1.0 - hitResult.mitigationFactor) * 100).clamp(0, 100).toStringAsFixed(0);
           if (isDefending.value) {
-            addLog('The ${enemy.name} uses ${skill.name} on your shield for $baseDmg damage.');
+            addLog('The ${enemy.name} uses ${skill.name} on your shield for ${hitResult.finalDamage} damage. (Armor blocked $mitPercent%)');
           } else {
-            addLog('The ${enemy.name} uses ${skill.name} for $baseDmg ${skill.type.name} damage.');
+            addLog('The ${enemy.name} uses ${skill.name} for ${hitResult.finalDamage} damage. (Armor blocked $mitPercent%)');
           }
         }
       }
@@ -761,17 +1002,22 @@ class CombatController extends GetxController {
       await Future.delayed(const Duration(milliseconds: 1200));
     }
 
+    _enemiesActedThisRound = true;
     if (inCombat.value) {
-      isPlayerTurn.value = true;
-      playerAp.value = 3;
-      hasMovedThisTurn.value = false;
-      isDefending.value = false;
-
-      final staminaDrip = 15;
-      playerStamina.value = min(playerMaxStamina.value, playerStamina.value + staminaDrip);
-
-      addLog('Your turn begins. (+15 Stamina).');
-      showDamagePopup('player', '+$staminaDrip STAM');
+      if (!_playerActedThisRound) {
+        _processPlayerTurnStart();
+      } else {
+        addLog('Round complete. Preparing next round...');
+        if (Get.testMode) {
+          if (inCombat.value) rollInitiativeAndStartRound();
+        } else {
+          Future.delayed(const Duration(milliseconds: 600), () {
+            if (inCombat.value) {
+              rollInitiativeAndStartRound();
+            }
+          });
+        }
+      }
     }
   }
 

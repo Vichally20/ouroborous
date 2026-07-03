@@ -5,6 +5,10 @@ import 'package:ouroboros/main.dart';
 import 'package:ouroboros/states/player_state.dart';
 
 void main() {
+  setUp(() {
+    Get.testMode = true;
+  });
+
   Future<void> createCharacter(WidgetTester tester, {String name = 'Test Hero'}) async {
     // Scribe name
     await tester.enterText(find.byType(TextField), name);
