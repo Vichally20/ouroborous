@@ -271,6 +271,7 @@ class SandboxDungeonController extends GetxController {
         imageAsset: 'assets/images/enemy_werewolf_black.png',
         maxHp: 50,
         maxStamina: 100,
+        maxAp: 2,
         strength: 10,
         defense: 4,
         speed: 10,

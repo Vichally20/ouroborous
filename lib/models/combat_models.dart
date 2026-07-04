@@ -31,6 +31,7 @@ abstract class CombatEntity {
   String get imageAsset;
   int get maxHp;
   int get maxStamina;
+  int get maxAp;
   int get strength;
   int get defense;
   int get speed;
@@ -38,6 +39,7 @@ abstract class CombatEntity {
   // Reactive state
   RxInt get hp;
   RxInt get stamina;
+  RxInt get ap;
   RxString get lane; // 'front' or 'back'
   RxBool get isDead;
   RxInt get bleedStacks;
@@ -52,6 +54,7 @@ class EnemyTemplate implements CombatDefinition {
   final String imageAsset;
   final int maxHp;
   final int maxStamina;
+  final int maxAp;
   final int strength;
   final int defense;
   final int speed;
@@ -64,6 +67,7 @@ class EnemyTemplate implements CombatDefinition {
     required this.imageAsset,
     required this.maxHp,
     required this.maxStamina,
+    this.maxAp = 2,
     required this.strength,
     required this.defense,
     required this.speed,
@@ -77,6 +81,7 @@ class EnemyTemplate implements CombatDefinition {
     // Strictly enforce maxHp from schema without sloppy fallback keys
     final int maxHealth = stats['maxHp'] ?? 50;
     final int maxStam = stats['maxStamina'] ?? 50;
+    final int maxActionPoints = stats['maxAp'] ?? stats['ap'] ?? 1;
 
     return EnemyTemplate(
       id: id,
@@ -84,6 +89,7 @@ class EnemyTemplate implements CombatDefinition {
       imageAsset: json['imageAsset'] as String? ?? 'assets/images/enemy_werewolf_black.png',
       maxHp: maxHealth,
       maxStamina: maxStam,
+      maxAp: maxActionPoints,
       strength: stats['strength'] ?? 10,
       defense: stats['defense'] ?? 5,
       speed: stats['speed'] ?? 10,
@@ -98,6 +104,7 @@ class ActiveEnemy implements CombatEntity {
   final EnemyTemplate template;
   final int _overrideMaxHp;
   final int _overrideMaxStamina;
+  final int _overrideMaxAp;
   final int _overrideStrength;
   final int _overrideDefense;
   final String _overrideName;
@@ -106,6 +113,8 @@ class ActiveEnemy implements CombatEntity {
   final RxInt hp;
   @override
   final RxInt stamina;
+  @override
+  final RxInt ap;
   @override
   final RxString lane;
   @override
@@ -124,15 +133,18 @@ class ActiveEnemy implements CombatEntity {
     String? nameOverride,
     int? maxHpOverride,
     int? maxStaminaOverride,
+    int? maxApOverride,
     int? strengthOverride,
     int? defenseOverride,
   })  : _overrideName = nameOverride ?? template.name,
         _overrideMaxHp = maxHpOverride ?? template.maxHp,
         _overrideMaxStamina = maxStaminaOverride ?? template.maxStamina,
+        _overrideMaxAp = maxApOverride ?? template.maxAp,
         _overrideStrength = strengthOverride ?? template.strength,
         _overrideDefense = defenseOverride ?? template.defense,
         hp = initialHp.obs,
         stamina = initialStamina.obs,
+        ap = (maxApOverride ?? template.maxAp).obs,
         lane = initialLane.obs,
         isDead = (initialHp <= 0).obs;
 
@@ -146,6 +158,8 @@ class ActiveEnemy implements CombatEntity {
   int get maxHp => _overrideMaxHp;
   @override
   int get maxStamina => _overrideMaxStamina;
+  @override
+  int get maxAp => _overrideMaxAp;
   @override
   int get strength => _overrideStrength;
   @override
@@ -169,6 +183,8 @@ class ActiveHero implements CombatEntity {
   @override
   final int maxStamina;
   @override
+  final int maxAp = 3;
+  @override
   final int strength;
   @override
   final int defense;
@@ -179,6 +195,8 @@ class ActiveHero implements CombatEntity {
   final RxInt hp;
   @override
   final RxInt stamina;
+  @override
+  final RxInt ap = 3.obs;
   @override
   final RxString lane;
   @override
@@ -214,6 +232,7 @@ class AllyTemplate implements CombatDefinition {
   final String imageAsset;
   final int maxHp;
   final int maxStamina;
+  final int maxAp;
   final int strength;
   final int defense;
   final int speed;
@@ -226,6 +245,7 @@ class AllyTemplate implements CombatDefinition {
     required this.imageAsset,
     required this.maxHp,
     required this.maxStamina,
+    this.maxAp = 2,
     required this.strength,
     required this.defense,
     required this.speed,
@@ -238,6 +258,7 @@ class AllyTemplate implements CombatDefinition {
 
     final int maxHealth = stats['maxHp'] ?? 50;
     final int maxStam = stats['maxStamina'] ?? 50;
+    final int maxActionPoints = stats['maxAp'] ?? stats['ap'] ?? 1;
 
     return AllyTemplate(
       id: id,
@@ -245,6 +266,7 @@ class AllyTemplate implements CombatDefinition {
       imageAsset: json['imageAsset'] as String? ?? 'assets/images/player.png',
       maxHp: maxHealth,
       maxStamina: maxStam,
+      maxAp: maxActionPoints,
       strength: stats['strength'] ?? 10,
       defense: stats['defense'] ?? 5,
       speed: stats['speed'] ?? 10,
@@ -259,6 +281,7 @@ class ActiveAlly implements CombatEntity {
   final AllyTemplate template;
   final int _overrideMaxHp;
   final int _overrideMaxStamina;
+  final int _overrideMaxAp;
   final int _overrideStrength;
   final int _overrideDefense;
   final String _overrideName;
@@ -267,6 +290,8 @@ class ActiveAlly implements CombatEntity {
   final RxInt hp;
   @override
   final RxInt stamina;
+  @override
+  final RxInt ap;
   @override
   final RxString lane;
   @override
@@ -285,15 +310,18 @@ class ActiveAlly implements CombatEntity {
     String? nameOverride,
     int? maxHpOverride,
     int? maxStaminaOverride,
+    int? maxApOverride,
     int? strengthOverride,
     int? defenseOverride,
   })  : _overrideName = nameOverride ?? template.name,
         _overrideMaxHp = maxHpOverride ?? template.maxHp,
         _overrideMaxStamina = maxStaminaOverride ?? template.maxStamina,
+        _overrideMaxAp = maxApOverride ?? template.maxAp,
         _overrideStrength = strengthOverride ?? template.strength,
         _overrideDefense = defenseOverride ?? template.defense,
         hp = initialHp.obs,
         stamina = initialStamina.obs,
+        ap = (maxApOverride ?? template.maxAp).obs,
         lane = initialLane.obs,
         isDead = (initialHp <= 0).obs;
 
@@ -307,6 +335,8 @@ class ActiveAlly implements CombatEntity {
   int get maxHp => _overrideMaxHp;
   @override
   int get maxStamina => _overrideMaxStamina;
+  @override
+  int get maxAp => _overrideMaxAp;
   @override
   int get strength => _overrideStrength;
   @override

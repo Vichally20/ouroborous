@@ -699,6 +699,10 @@ class CombatController extends GetxController {
       if (ally.isDead.value) continue;
       if (!inCombat.value) return;
 
+      ally.ap.value = ally.maxAp;
+      int staminaDrip = 15 + (ally.speed * 0.2).round();
+      ally.stamina.value = min(ally.maxStamina, ally.stamina.value + staminaDrip);
+
       if (ally.bleedStacks.value > 0) {
         int bleedDmg = ally.bleedStacks.value * 4;
         ally.hp.value = max(0, ally.hp.value - bleedDmg);
@@ -718,110 +722,125 @@ class CombatController extends GetxController {
         continue;
       }
 
-      final livingEnemies = enemies.where((e) => !e.isDead.value).toList();
-      if (livingEnemies.isEmpty) return;
+      while (ally.ap.value > 0 && !ally.isDead.value && inCombat.value) {
+        final livingEnemies = enemies.where((e) => !e.isDead.value).toList();
+        if (livingEnemies.isEmpty) return;
 
-      double scoreAttack = ally.aiProfile.aggression * 100.0;
-      double scoreAdvance = 0.0;
-      double scoreFlee = 0.0;
+        double scoreAttack = ally.aiProfile.aggression * 100.0;
+        double scoreAdvance = 0.0;
+        double scoreFlee = 0.0;
 
-      if (ally.hp.value < (ally.maxHp * 0.3)) {
-        scoreFlee = ally.aiProfile.selfPreservation * 100.0;
-      }
+        if (ally.hp.value < (ally.maxHp * 0.3)) {
+          scoreFlee = ally.aiProfile.selfPreservation * 100.0;
+        }
 
-      final bool isFrontEmpty = allies.where((a) => a.lane.value == 'front' && !a.isDead.value).isEmpty && playerLane.value != 'front';
-      if (ally.lane.value == 'back' && ally.aiProfile.preferredRange == 0.0) {
-        scoreAdvance = 100.0;
-      } else if (ally.lane.value == 'front' && ally.aiProfile.preferredRange > 0.0) {
-        scoreFlee += 50.0;
-      }
-      if (ally.lane.value == 'back' && isFrontEmpty && ally.aiProfile.preferredRange < 0.8) {
-        scoreAdvance += 150.0;
-      }
+        final bool isFrontEmpty = allies.where((a) => a.lane.value == 'front' && !a.isDead.value).isEmpty && playerLane.value != 'front';
+        if (ally.lane.value == 'back' && ally.aiProfile.preferredRange == 0.0) {
+          scoreAdvance = 100.0;
+        } else if (ally.lane.value == 'front' && ally.aiProfile.preferredRange > 0.0) {
+          scoreFlee += 50.0;
+        }
+        if (ally.lane.value == 'back' && isFrontEmpty && ally.aiProfile.preferredRange < 0.8) {
+          scoreAdvance += 150.0;
+        }
 
-      scoreAttack += _random.nextInt(20);
-      scoreFlee += _random.nextInt(20);
-      scoreAdvance += _random.nextInt(20);
+        scoreAttack += _random.nextInt(20);
+        scoreFlee += _random.nextInt(20);
+        scoreAdvance += _random.nextInt(20);
 
-      if (scoreAdvance > scoreAttack && scoreAdvance > scoreFlee && ally.lane.value == 'back') {
-        ally.lane.value = 'front';
-        addLog('${ally.name} advances to the Front Line.');
-        await Future.delayed(const Duration(milliseconds: 800));
-      } else if (scoreFlee > scoreAttack && ally.lane.value == 'front') {
-        ally.lane.value = 'back';
-        addLog('${ally.name} retreats to the Back Line.');
-        await Future.delayed(const Duration(milliseconds: 800));
-      } else {
-        final target = livingEnemies[_random.nextInt(livingEnemies.length)];
-        final bool allyIsRanged = ally.aiProfile.preferredRange > 0.5;
-        final allyRange = allyIsRanged ? WeaponRange.ranged : WeaponRange.melee;
+        if (scoreAdvance > scoreAttack && scoreAdvance > scoreFlee && ally.lane.value == 'back') {
+          ally.lane.value = 'front';
+          ally.ap.value -= 1;
+          addLog('${ally.name} advances to the Front Line.');
+          await Future.delayed(const Duration(milliseconds: 600));
+        } else if (scoreFlee > scoreAttack && ally.lane.value == 'front') {
+          ally.lane.value = 'back';
+          ally.ap.value -= 1;
+          addLog('${ally.name} retreats to the Back Line.');
+          await Future.delayed(const Duration(milliseconds: 600));
+        } else {
+          final target = livingEnemies[_random.nextInt(livingEnemies.length)];
+          final bool allyIsRanged = ally.aiProfile.preferredRange > 0.5;
+          final allyRange = allyIsRanged ? WeaponRange.ranged : WeaponRange.melee;
 
-        if (!canReachTarget(ally.lane.value, target.lane.value, allyRange)) {
-          if (ally.lane.value == 'back') {
-            ally.lane.value = 'front';
-            addLog('${ally.name} charges to the Front Line!');
-            await Future.delayed(const Duration(milliseconds: 800));
-          } else {
-            addLog('${ally.name} attacks from afar, but falls short.');
-            await Future.delayed(const Duration(milliseconds: 600));
+          if (!canReachTarget(ally.lane.value, target.lane.value, allyRange)) {
+            if (ally.lane.value == 'back' && ally.ap.value >= 1) {
+              ally.lane.value = 'front';
+              ally.ap.value -= 1;
+              addLog('${ally.name} charges to the Front Line!');
+              await Future.delayed(const Duration(milliseconds: 600));
+              continue;
+            } else {
+              addLog('${ally.name} attacks from afar, but falls short.');
+              await Future.delayed(const Duration(milliseconds: 400));
+              break;
+            }
           }
+
+          final String chosenSkillId = ally.availableSkills.isNotEmpty
+              ? ally.availableSkills[_random.nextInt(ally.availableSkills.length)]
+              : 'strike';
+          CombatSkill skill = SkillDictionary.getSkill(chosenSkillId);
+
+          if (ally.ap.value < skill.apCost || ally.stamina.value < skill.staminaCost) {
+            skill = SkillDictionary.getSkill('strike');
+            if (ally.ap.value < skill.apCost || ally.stamina.value < skill.staminaCost) {
+              break;
+            }
+          }
+
+          ally.ap.value -= skill.apCost;
+          ally.stamina.value = max(0, ally.stamina.value - skill.staminaCost);
+
+          final hitResult = calculateCombatHit(
+            weaponDamage: 12,
+            attackerStr: ally.strength,
+            attackerDex: 10,
+            attackerInt: 10,
+            attackerSpeed: ally.speed,
+            defenderDefense: target.defense,
+            defenderSpeed: target.speed,
+            skill: skill,
+            attackerLane: ally.lane.value,
+            defenderLane: target.lane.value,
+            defenderIsDefending: false,
+          );
+
+          target.hp.value = max(0, target.hp.value - hitResult.finalDamage);
+          showDamagePopup(target.id, '-${hitResult.finalDamage} HP');
+
+          if (hitResult.bleedApplied > 0) {
+            target.bleedStacks.value += hitResult.bleedApplied;
+          }
+          if (hitResult.poisonApplied > 0) {
+            target.poisonStacks.value += hitResult.poisonApplied;
+          }
+
+          if (target.hp.value <= 0) {
+            target.hp.value = 0;
+            target.isDead.value = true;
+            addLog('The ${target.name} collapses under ${ally.name}\'s attack!');
+            final nextLiving = enemies.firstWhereOrNull((e) => !e.isDead.value);
+            selectedEnemyId.value = nextLiving?.id;
+          }
+
+          final allyEvent = CombatEvent(
+            skillName: skill.name,
+            weaponName: ally.name,
+            targetId: target.id,
+            damageHits: [hitResult.finalDamage],
+            isPlayerAction: true,
+          );
+          lastCombatEvent.value = allyEvent;
+          attackEventId.value++;
+          lastHitEnemyId.value = target.id;
+          enemyHitEventId.value++;
+
+          String mitPercent = ((1.0 - hitResult.mitigationFactor) * 100).clamp(0, 100).toStringAsFixed(0);
+          addLog('${ally.name} strikes ${target.name} with ${skill.name} for ${hitResult.finalDamage} damage! (Armor blocked $mitPercent%)');
+          await Future.delayed(const Duration(milliseconds: 700));
           checkVictoryOrDefeat();
-          continue;
         }
-
-        final String chosenSkillId = ally.availableSkills.isNotEmpty
-            ? ally.availableSkills[_random.nextInt(ally.availableSkills.length)]
-            : 'strike';
-        final CombatSkill skill = SkillDictionary.getSkill(chosenSkillId);
-
-        final hitResult = calculateCombatHit(
-          weaponDamage: 12,
-          attackerStr: ally.strength,
-          attackerDex: 10,
-          attackerInt: 10,
-          attackerSpeed: ally.speed,
-          defenderDefense: target.defense,
-          defenderSpeed: target.speed,
-          skill: skill,
-          attackerLane: ally.lane.value,
-          defenderLane: target.lane.value,
-          defenderIsDefending: false,
-        );
-
-        target.hp.value = max(0, target.hp.value - hitResult.finalDamage);
-        showDamagePopup(target.id, '-${hitResult.finalDamage} HP');
-
-        if (hitResult.bleedApplied > 0) {
-          target.bleedStacks.value += hitResult.bleedApplied;
-        }
-        if (hitResult.poisonApplied > 0) {
-          target.poisonStacks.value += hitResult.poisonApplied;
-        }
-
-        if (target.hp.value <= 0) {
-          target.hp.value = 0;
-          target.isDead.value = true;
-          addLog('The ${target.name} collapses under ${ally.name}\'s attack!');
-          final nextLiving = enemies.firstWhereOrNull((e) => !e.isDead.value);
-          selectedEnemyId.value = nextLiving?.id;
-        }
-
-        final allyEvent = CombatEvent(
-          skillName: skill.name,
-          weaponName: ally.name,
-          targetId: target.id,
-          damageHits: [hitResult.finalDamage],
-          isPlayerAction: true,
-        );
-        lastCombatEvent.value = allyEvent;
-        attackEventId.value++;
-        lastHitEnemyId.value = target.id;
-        enemyHitEventId.value++;
-
-        String mitPercent = ((1.0 - hitResult.mitigationFactor) * 100).clamp(0, 100).toStringAsFixed(0);
-        addLog('${ally.name} strikes ${target.name} with ${skill.name} for ${hitResult.finalDamage} damage! (Armor blocked $mitPercent%)');
-        await Future.delayed(const Duration(milliseconds: 1000));
-        checkVictoryOrDefeat();
       }
     }
   }
@@ -830,6 +849,10 @@ class CombatController extends GetxController {
     for (var enemy in enemies) {
       if (enemy.isDead.value) continue;
       if (!inCombat.value) return;
+
+      enemy.ap.value = enemy.maxAp;
+      int staminaDrip = 15 + (enemy.speed * 0.2).round();
+      enemy.stamina.value = min(enemy.maxStamina, enemy.stamina.value + staminaDrip);
 
       if (enemy.bleedStacks.value > 0) {
         int bleedDmg = enemy.bleedStacks.value * 4;
@@ -850,156 +873,170 @@ class CombatController extends GetxController {
         continue;
       }
 
-      double scoreAttack = enemy.aiProfile.aggression * 100.0;
-      double scoreFlee = 0.0;
-      double scoreAdvance = 0.0;
+      while (enemy.ap.value > 0 && !enemy.isDead.value && inCombat.value) {
+        double scoreAttack = enemy.aiProfile.aggression * 100.0;
+        double scoreFlee = 0.0;
+        double scoreAdvance = 0.0;
 
-      if (enemy.hp.value < (enemy.maxHp * 0.3)) {
-        scoreFlee = enemy.aiProfile.selfPreservation * 100.0;
-      }
-
-      final bool isFrontEmpty = enemies.where((e) => e.lane.value == 'front' && !e.isDead.value).isEmpty;
-      if (enemy.lane.value == 'back' && enemy.aiProfile.preferredRange == 0.0) {
-        scoreAdvance = 100.0;
-      } else if (enemy.lane.value == 'front' && enemy.aiProfile.preferredRange > 0.0) {
-        scoreFlee += 50.0;
-      }
-      if (enemy.lane.value == 'back' && isFrontEmpty && enemy.aiProfile.preferredRange < 0.8) {
-        scoreAdvance += 150.0;
-      }
-
-      scoreAttack += _random.nextInt(20);
-      scoreFlee += _random.nextInt(20);
-      scoreAdvance += _random.nextInt(20);
-
-      if (scoreAdvance > scoreAttack && scoreAdvance > scoreFlee && enemy.lane.value == 'back') {
-        enemy.lane.value = 'front';
-        addLog('The ${enemy.name} advances to the Front Line.');
-        await Future.delayed(const Duration(milliseconds: 1000));
-      } else if (scoreFlee > scoreAttack && enemy.lane.value == 'front') {
-        enemy.lane.value = 'back';
-        addLog('The ${enemy.name} retreats to the Back Line.');
-        await Future.delayed(const Duration(milliseconds: 1000));
-      } else {
-        final bool enemyIsRanged = enemy.aiProfile.preferredRange > 0.5;
-        final enemyRange = enemyIsRanged ? WeaponRange.ranged : WeaponRange.melee;
-        if (!canReachTarget(enemy.lane.value, playerLane.value, enemyRange)) {
-          if (enemy.lane.value == 'back') {
-            enemy.lane.value = 'front';
-            addLog('The ${enemy.name} charges to the Front Line!');
-            await Future.delayed(const Duration(milliseconds: 1000));
-          } else {
-            addLog('The ${enemy.name} snarls from afar, out of reach.');
-            await Future.delayed(const Duration(milliseconds: 800));
-          }
-          checkVictoryOrDefeat();
-          continue;
+        if (enemy.hp.value < (enemy.maxHp * 0.3)) {
+          scoreFlee = enemy.aiProfile.selfPreservation * 100.0;
         }
 
-        final String chosenSkillId = enemy.availableSkills.isNotEmpty
-            ? enemy.availableSkills[_random.nextInt(enemy.availableSkills.length)]
-            : 'strike';
-        final CombatSkill skill = SkillDictionary.getSkill(chosenSkillId);
-
-        ActiveAlly? targetAlly;
-        final livingAllies = allies.where((a) => !a.isDead.value).toList();
-        final frontAllies = livingAllies.where((a) => a.lane.value == 'front').toList();
-
-        if (enemyRange == WeaponRange.melee && playerLane.value == 'back' && frontAllies.isNotEmpty) {
-          targetAlly = frontAllies[_random.nextInt(frontAllies.length)];
-        } else if (_random.nextBool() && livingAllies.isNotEmpty) {
-          targetAlly = livingAllies[_random.nextInt(livingAllies.length)];
+        final bool isFrontEmpty = enemies.where((e) => e.lane.value == 'front' && !e.isDead.value).isEmpty;
+        if (enemy.lane.value == 'back' && enemy.aiProfile.preferredRange == 0.0) {
+          scoreAdvance = 100.0;
+        } else if (enemy.lane.value == 'front' && enemy.aiProfile.preferredRange > 0.0) {
+          scoreFlee += 50.0;
+        }
+        if (enemy.lane.value == 'back' && isFrontEmpty && enemy.aiProfile.preferredRange < 0.8) {
+          scoreAdvance += 150.0;
         }
 
-        if (targetAlly != null) {
-          final hitResult = calculateCombatHit(
-            weaponDamage: 12,
-            attackerStr: enemy.strength,
-            attackerDex: 10,
-            attackerInt: 10,
-            attackerSpeed: enemy.speed,
-            defenderDefense: targetAlly.defense,
-            defenderSpeed: targetAlly.speed,
-            skill: skill,
-            attackerLane: enemy.lane.value,
-            defenderLane: targetAlly.lane.value,
-            defenderIsDefending: false,
-          );
-          targetAlly.hp.value = max(0, targetAlly.hp.value - hitResult.finalDamage);
-          showDamagePopup(targetAlly.id, '-${hitResult.finalDamage} HP');
+        scoreAttack += _random.nextInt(20);
+        scoreFlee += _random.nextInt(20);
+        scoreAdvance += _random.nextInt(20);
 
-          if (targetAlly.hp.value <= 0) {
-            targetAlly.hp.value = 0;
-            targetAlly.isDead.value = true;
-            addLog('${targetAlly.name} has fallen in battle!');
-          }
-
-          int heal = skill.healAmount + hitResult.lifestealHeal;
-          if (heal > 0) {
-            enemy.hp.value = (enemy.hp.value + heal).clamp(0, enemy.maxHp);
-            showDamagePopup(enemy.id, '+$heal HP');
-          }
-
-          final enemyEvent = CombatEvent(
-            skillName: skill.name,
-            weaponName: enemy.name,
-            targetId: targetAlly.id,
-            damageHits: [hitResult.finalDamage],
-            isPlayerAction: false,
-          );
-          lastCombatEvent.value = enemyEvent;
-          attackEventId.value++;
-          lastHitEnemyId.value = targetAlly.id;
-          enemyHitEventId.value++;
-
-          String mitPercent = ((1.0 - hitResult.mitigationFactor) * 100).clamp(0, 100).toStringAsFixed(0);
-          addLog('The ${enemy.name} uses ${skill.name} on ${targetAlly.name} for ${hitResult.finalDamage} damage. (Armor blocked $mitPercent%)');
+        if (scoreAdvance > scoreAttack && scoreAdvance > scoreFlee && enemy.lane.value == 'back') {
+          enemy.lane.value = 'front';
+          enemy.ap.value -= 1;
+          addLog('The ${enemy.name} advances to the Front Line.');
+          await Future.delayed(const Duration(milliseconds: 700));
+        } else if (scoreFlee > scoreAttack && enemy.lane.value == 'front') {
+          enemy.lane.value = 'back';
+          enemy.ap.value -= 1;
+          addLog('The ${enemy.name} retreats to the Back Line.');
+          await Future.delayed(const Duration(milliseconds: 700));
         } else {
-          final hitResult = calculateCombatHit(
-            weaponDamage: 12,
-            attackerStr: enemy.strength,
-            attackerDex: 10,
-            attackerInt: 10,
-            attackerSpeed: enemy.speed,
-            defenderDefense: playerDefense.value,
-            defenderSpeed: playerSpeed.value,
-            skill: skill,
-            attackerLane: enemy.lane.value,
-            defenderLane: playerLane.value,
-            defenderIsDefending: isDefending.value,
-          );
-          playerHp.value = max(0, playerHp.value - hitResult.finalDamage);
-          showDamagePopup('player', '-${hitResult.finalDamage} HP');
-
-          int heal = skill.healAmount + hitResult.lifestealHeal;
-          if (heal > 0) {
-            enemy.hp.value = (enemy.hp.value + heal).clamp(0, enemy.maxHp);
-            showDamagePopup(enemy.id, '+$heal HP');
+          final bool enemyIsRanged = enemy.aiProfile.preferredRange > 0.5;
+          final enemyRange = enemyIsRanged ? WeaponRange.ranged : WeaponRange.melee;
+          if (!canReachTarget(enemy.lane.value, playerLane.value, enemyRange)) {
+            if (enemy.lane.value == 'back' && enemy.ap.value >= 1) {
+              enemy.lane.value = 'front';
+              enemy.ap.value -= 1;
+              addLog('The ${enemy.name} charges to the Front Line!');
+              await Future.delayed(const Duration(milliseconds: 700));
+              continue;
+            } else {
+              addLog('The ${enemy.name} snarls from afar, out of reach.');
+              await Future.delayed(const Duration(milliseconds: 500));
+              break;
+            }
           }
 
-          final enemyEvent = CombatEvent(
-            skillName: skill.name,
-            weaponName: enemy.name,
-            targetId: 'player',
-            damageHits: [hitResult.finalDamage],
-            isPlayerAction: false,
-          );
-          lastCombatEvent.value = enemyEvent;
-          attackEventId.value++;
-          lastHitEnemyId.value = 'player';
-          enemyHitEventId.value++;
+          final String chosenSkillId = enemy.availableSkills.isNotEmpty
+              ? enemy.availableSkills[_random.nextInt(enemy.availableSkills.length)]
+              : 'strike';
+          CombatSkill skill = SkillDictionary.getSkill(chosenSkillId);
 
-          String mitPercent = ((1.0 - hitResult.mitigationFactor) * 100).clamp(0, 100).toStringAsFixed(0);
-          if (isDefending.value) {
-            addLog('The ${enemy.name} uses ${skill.name} on your shield for ${hitResult.finalDamage} damage. (Armor blocked $mitPercent%)');
+          if (enemy.ap.value < skill.apCost || enemy.stamina.value < skill.staminaCost) {
+            skill = SkillDictionary.getSkill('strike');
+            if (enemy.ap.value < skill.apCost || enemy.stamina.value < skill.staminaCost) {
+              break;
+            }
+          }
+
+          enemy.ap.value -= skill.apCost;
+          enemy.stamina.value = max(0, enemy.stamina.value - skill.staminaCost);
+
+          ActiveAlly? targetAlly;
+          final livingAllies = allies.where((a) => !a.isDead.value).toList();
+          final frontAllies = livingAllies.where((a) => a.lane.value == 'front').toList();
+
+          if (enemyRange == WeaponRange.melee && playerLane.value == 'back' && frontAllies.isNotEmpty) {
+            targetAlly = frontAllies[_random.nextInt(frontAllies.length)];
+          } else if (_random.nextBool() && livingAllies.isNotEmpty) {
+            targetAlly = livingAllies[_random.nextInt(livingAllies.length)];
+          }
+
+          if (targetAlly != null) {
+            final hitResult = calculateCombatHit(
+              weaponDamage: 12,
+              attackerStr: enemy.strength,
+              attackerDex: 10,
+              attackerInt: 10,
+              attackerSpeed: enemy.speed,
+              defenderDefense: targetAlly.defense,
+              defenderSpeed: targetAlly.speed,
+              skill: skill,
+              attackerLane: enemy.lane.value,
+              defenderLane: targetAlly.lane.value,
+              defenderIsDefending: false,
+            );
+            targetAlly.hp.value = max(0, targetAlly.hp.value - hitResult.finalDamage);
+            showDamagePopup(targetAlly.id, '-${hitResult.finalDamage} HP');
+
+            if (targetAlly.hp.value <= 0) {
+              targetAlly.hp.value = 0;
+              targetAlly.isDead.value = true;
+              addLog('${targetAlly.name} has fallen in battle!');
+            }
+
+            int heal = skill.healAmount + hitResult.lifestealHeal;
+            if (heal > 0) {
+              enemy.hp.value = (enemy.hp.value + heal).clamp(0, enemy.maxHp);
+              showDamagePopup(enemy.id, '+$heal HP');
+            }
+
+            final enemyEvent = CombatEvent(
+              skillName: skill.name,
+              weaponName: enemy.name,
+              targetId: targetAlly.id,
+              damageHits: [hitResult.finalDamage],
+              isPlayerAction: false,
+            );
+            lastCombatEvent.value = enemyEvent;
+            attackEventId.value++;
+            lastHitEnemyId.value = targetAlly.id;
+            enemyHitEventId.value++;
+
+            String mitPercent = ((1.0 - hitResult.mitigationFactor) * 100).clamp(0, 100).toStringAsFixed(0);
+            addLog('The ${enemy.name} uses ${skill.name} on ${targetAlly.name} for ${hitResult.finalDamage} damage. (Armor blocked $mitPercent%)');
           } else {
-            addLog('The ${enemy.name} uses ${skill.name} for ${hitResult.finalDamage} damage. (Armor blocked $mitPercent%)');
+            final hitResult = calculateCombatHit(
+              weaponDamage: 12,
+              attackerStr: enemy.strength,
+              attackerDex: 10,
+              attackerInt: 10,
+              attackerSpeed: enemy.speed,
+              defenderDefense: playerDefense.value,
+              defenderSpeed: playerSpeed.value,
+              skill: skill,
+              attackerLane: enemy.lane.value,
+              defenderLane: playerLane.value,
+              defenderIsDefending: isDefending.value,
+            );
+            playerHp.value = max(0, playerHp.value - hitResult.finalDamage);
+            showDamagePopup('player', '-${hitResult.finalDamage} HP');
+
+            int heal = skill.healAmount + hitResult.lifestealHeal;
+            if (heal > 0) {
+              enemy.hp.value = (enemy.hp.value + heal).clamp(0, enemy.maxHp);
+              showDamagePopup(enemy.id, '+$heal HP');
+            }
+
+            final enemyEvent = CombatEvent(
+              skillName: skill.name,
+              weaponName: enemy.name,
+              targetId: 'player',
+              damageHits: [hitResult.finalDamage],
+              isPlayerAction: false,
+            );
+            lastCombatEvent.value = enemyEvent;
+            attackEventId.value++;
+            lastHitEnemyId.value = 'player';
+            enemyHitEventId.value++;
+
+            String mitPercent = ((1.0 - hitResult.mitigationFactor) * 100).clamp(0, 100).toStringAsFixed(0);
+            if (isDefending.value) {
+              addLog('The ${enemy.name} uses ${skill.name} on your shield for ${hitResult.finalDamage} damage. (Armor blocked $mitPercent%)');
+            } else {
+              addLog('The ${enemy.name} uses ${skill.name} for ${hitResult.finalDamage} damage. (Armor blocked $mitPercent%)');
+            }
           }
         }
+        checkVictoryOrDefeat();
+        await Future.delayed(const Duration(milliseconds: 700));
       }
-
-      checkVictoryOrDefeat();
-      await Future.delayed(const Duration(milliseconds: 1200));
     }
 
     _enemiesActedThisRound = true;
@@ -1051,7 +1088,6 @@ class CombatController extends GetxController {
         );
         return;
       }
-      inCombat.value = false;
       addLog('VICTORY! You have vanquished the enemies.');
       
       final playerState = Get.find<PlayerState>();
@@ -1068,11 +1104,6 @@ class CombatController extends GetxController {
         borderRadius: 0,
         margin: const EdgeInsets.all(12),
       );
-
-      // Route to aftermath node if one was provided
-      if (currentVictoryNodeId.value != null) {
-        Get.find<StoryEngine>().goToNode(currentVictoryNodeId.value!);
-      }
       
       return;
     }
@@ -1091,7 +1122,6 @@ class CombatController extends GetxController {
         );
         return;
       }
-      inCombat.value = false;
       addLog('DEFEAT... You fell in battle.');
       
       final playerState = Get.find<PlayerState>();
@@ -1107,6 +1137,17 @@ class CombatController extends GetxController {
         margin: const EdgeInsets.all(12),
       );
     }
+  }
+
+  void finishCombatVictory() {
+    inCombat.value = false;
+    if (currentVictoryNodeId.value != null) {
+      Get.find<StoryEngine>().goToNode(currentVictoryNodeId.value!);
+    }
+  }
+
+  void finishCombatDefeat() {
+    inCombat.value = false;
   }
 
   void escapeCombat() {

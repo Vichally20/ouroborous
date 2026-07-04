@@ -1195,6 +1195,63 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
     );
   }
 
+  Widget _buildPostCombatLogReview(CombatController controller) {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF100E0C),
+        border: Border.all(color: const Color(0xFF3C3224)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            color: const Color(0xFF1E1A16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'BATTLE RECAP & LOGS',
+                  style: VitruvianTypography.monospaceData(fontSize: 11, color: VitruvianColors.agedBone),
+                ),
+                Text(
+                  '${controller.combatLogs.length} EVENTS',
+                  style: VitruvianTypography.monospaceData(fontSize: 10, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: controller.combatLogs.length,
+              itemBuilder: (context, index) {
+                final log = controller.combatLogs[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6.0),
+                  child: Text(
+                    log,
+                    style: VitruvianTypography.monospaceData(
+                      fontSize: 12,
+                      color: log.contains('CRITICAL') || log.contains('VICTORY')
+                          ? const Color(0xFFC89B5D)
+                          : log.contains('damage') || log.contains('inflicts') || log.contains('DEFEAT')
+                              ? const Color(0xFFD47A7A)
+                              : const Color(0xFFA69A8E),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Defeat Overlay Screen
   Widget _buildDefeatOverlay(CombatController controller) {
     return Positioned.fill(
@@ -1229,7 +1286,9 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 48),
+            const SizedBox(height: 16),
+            _buildPostCombatLogReview(controller),
+            const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
@@ -1268,7 +1327,13 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
                       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    onPressed: () => controller.escapeCombat(),
+                    onPressed: () {
+                      if (controller.isSandbox.value) {
+                        controller.escapeCombat();
+                      } else {
+                        controller.finishCombatDefeat();
+                      }
+                    },
                     child: Text(
                       controller.isSandbox.value ? 'RETURN TO SETUP' : 'RETREAT TO SANCTUARY',
                       style: VitruvianTypography.monospaceData(fontSize: 13),
@@ -1332,7 +1397,9 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
                 ),
               ),
             ),
-            const SizedBox(height: 48),
+            const SizedBox(height: 16),
+            _buildPostCombatLogReview(controller),
+            const SizedBox(height: 24),
             if (controller.isSandbox.value)
               Row(
                 children: [
@@ -1391,7 +1458,7 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   onPressed: () {
-                    controller.inCombat.value = false; // exit combat view
+                    controller.finishCombatVictory();
                   },
                   child: Text(
                     'COLLECT TROPHIES & TRAVERSE',

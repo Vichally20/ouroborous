@@ -5,6 +5,7 @@
     "stats": {
       "maxHp": 40,
       "maxStamina": 80,
+      "maxAp": 2,
       "strength": 12,
       "defense": 3,
       "speed": 14
@@ -22,6 +23,7 @@
     "stats": {
       "maxHp": 90,
       "maxStamina": 60,
+      "maxAp": 1,
       "strength": 14,
       "defense": 8,
       "speed": 6
@@ -39,6 +41,7 @@
     "stats": {
       "maxHp": 45,
       "maxStamina": 90,
+      "maxAp": 2,
       "strength": 13,
       "defense": 4,
       "speed": 13
