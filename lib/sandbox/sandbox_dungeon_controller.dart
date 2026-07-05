@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../models/combat_models.dart';
 import '../models/item.dart';
 import '../models/hero_character.dart';
+import '../models/character_class.dart';
 import '../states/player_state.dart';
 import '../states/combat_state.dart';
 
@@ -138,6 +139,16 @@ class SandboxDungeonController extends GetxController {
     }
   }
 
+  List<String> get activeHeroSkills {
+    if (availableHeroes.isEmpty || selectedHeroIndex.value < 0 || selectedHeroIndex.value >= availableHeroes.length) {
+      return const ['blood_falchion_strike', 'heavy_slash'];
+    }
+    final hero = availableHeroes[selectedHeroIndex.value];
+    return hero.availableSkills.isNotEmpty
+        ? hero.availableSkills
+        : hero.characterClass.availableSkills;
+  }
+
   void selectHero(int index) {
     if (availableHeroes.isNotEmpty && index >= 0 && index < availableHeroes.length) {
       selectedHeroIndex.value = index;
@@ -147,6 +158,13 @@ class SandboxDungeonController extends GetxController {
       intelligence.value = hero.attributes.intelligence;
       constitution.value = hero.attributes.constitution;
       insight.value = hero.attributes.insight;
+      if (hero.characterClass.type == PersonalityClassType.sorcerer) {
+        selectedWeaponIndex.value = 2; // Hermetic Voidstaff
+      } else if (hero.characterClass.type == PersonalityClassType.assassin) {
+        selectedWeaponIndex.value = 3; // Twin Shadow Daggers
+      } else {
+        selectedWeaponIndex.value = 0; // Blackiron Claymore
+      }
       recalculateVitals();
     }
   }
@@ -195,9 +213,15 @@ class SandboxDungeonController extends GetxController {
     recalculateVitals();
 
     final enemy = createWaveEnemy(currentWave.value);
+    final hero = availableHeroes.isNotEmpty && selectedHeroIndex.value >= 0 && selectedHeroIndex.value < availableHeroes.length
+        ? availableHeroes[selectedHeroIndex.value]
+        : null;
+    final name = hero?.name ?? 'Sandbox Gladiator';
 
     final combatController = Get.find<CombatController>();
     combatController.startSandboxCombat(
+      heroName: name,
+      heroSkills: activeHeroSkills,
       heroMaxHp: maxHp.value,
       heroMaxStamina: maxStamina.value,
       heroStrength: strength.value,
@@ -227,8 +251,14 @@ class SandboxDungeonController extends GetxController {
       final newHp = (combatController.playerHp.value + healAmt).clamp(0, maxHp.value);
 
       final nextEnemy = createWaveEnemy(currentWave.value);
+      final hero = availableHeroes.isNotEmpty && selectedHeroIndex.value >= 0 && selectedHeroIndex.value < availableHeroes.length
+          ? availableHeroes[selectedHeroIndex.value]
+          : null;
+      final name = hero?.name ?? 'Sandbox Gladiator';
 
       combatController.startSandboxCombat(
+        heroName: name,
+        heroSkills: activeHeroSkills,
         heroMaxHp: maxHp.value,
         heroMaxStamina: maxStamina.value,
         heroStrength: strength.value,

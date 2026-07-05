@@ -128,6 +128,33 @@ class SettingsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('COMBAT ATTACK DELAY', style: VitruvianTypography.serifBody(fontSize: 16)),
+                Text(settingsState.attackDelayLabel,
+                    style: VitruvianTypography.serifBody(fontSize: 16, color: VitruvianColors.sepiaUmber)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 2.0,
+                activeTrackColor: VitruvianColors.sepiaUmber,
+                inactiveTrackColor: VitruvianColors.etchedHairline,
+                thumbShape: const RectangularSliderThumbShape(width: 8, height: 20),
+                thumbColor: VitruvianColors.agedBone,
+                tickMarkShape: SliderTickMarkShape.noTickMark,
+              ),
+              child: Slider(
+                value: settingsState.attackDelay.value,
+                min: 0.0,
+                max: 4.0,
+                divisions: 8,
+                onChanged: settingsState.setAttackDelay,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
               children: [
                 Text('SCREEN SHAKE', style: VitruvianTypography.serifBody(fontSize: 16)),
                 const DottedHairline(),

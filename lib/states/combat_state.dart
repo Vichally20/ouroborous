@@ -9,6 +9,7 @@ import '../models/item.dart';
 import '../models/skill.dart';
 import '../states/player_state.dart';
 import '../states/inventory_state.dart';
+import '../states/settings_state.dart';
 import '../game/story_engine.dart';
 
 class CombatHitResult {
@@ -102,6 +103,21 @@ class CombatController extends GetxController {
   final Random _random = Random();
   bool _playerActedThisRound = false;
   bool _enemiesActedThisRound = false;
+
+  Duration get _combatDelayDuration {
+    if (Get.testMode) return Duration.zero;
+    final settings = Get.isRegistered<SettingsState>() ? Get.find<SettingsState>() : null;
+    final double seconds = settings?.attackDelay.value ?? 2.0;
+    return Duration(milliseconds: (seconds * 1000).round());
+  }
+
+  Future<void> _delayBetweenAttacks() async {
+    if (Get.testMode) return;
+    final duration = _combatDelayDuration;
+    if (duration > Duration.zero) {
+      await Future.delayed(duration);
+    }
+  }
 
   @override
   void onInit() {
@@ -237,6 +253,7 @@ class CombatController extends GetxController {
   }
 
   void startSandboxCombat({
+    String? heroName,
     required int heroMaxHp,
     required int heroMaxStamina,
     required int heroStrength,
@@ -264,7 +281,7 @@ class CombatController extends GetxController {
     playerMaxStamina.value = heroMaxStamina;
     playerStamina.value = heroMaxStamina;
 
-    playerName.value = 'Sandbox Gladiator';
+    playerName.value = heroName ?? 'Sandbox Gladiator';
     playerStrength.value = heroStrength;
     playerDexterity.value = heroDexterity;
     playerIntelligence.value = heroIntelligence;
@@ -325,7 +342,7 @@ class CombatController extends GetxController {
       if (Get.testMode) {
         executeAllyTurnSequence().then((_) => executeEnemyTurnSequence());
       } else {
-        Future.delayed(const Duration(milliseconds: 600), () async {
+        Future.delayed(_combatDelayDuration, () async {
           await executeAllyTurnSequence();
           await executeEnemyTurnSequence();
         });
@@ -665,17 +682,25 @@ class CombatController extends GetxController {
 
     if (!_enemiesActedThisRound) {
       addLog('Allies & Enemies prepare to strike...');
-      Future.delayed(const Duration(milliseconds: 600), () async {
-        await executeAllyTurnSequence();
-        await executeEnemyTurnSequence();
-      });
+      if (Get.testMode) {
+        executeAllyTurnSequence().then((_) => executeEnemyTurnSequence());
+      } else {
+        Future.delayed(_combatDelayDuration, () async {
+          await executeAllyTurnSequence();
+          await executeEnemyTurnSequence();
+        });
+      }
     } else {
       addLog('Round complete. Preparing next round...');
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (inCombat.value) {
-          rollInitiativeAndStartRound();
-        }
-      });
+      if (Get.testMode) {
+        if (inCombat.value) rollInitiativeAndStartRound();
+      } else {
+        Future.delayed(_combatDelayDuration, () {
+          if (inCombat.value) {
+            rollInitiativeAndStartRound();
+          }
+        });
+      }
     }
   }
 
@@ -752,12 +777,12 @@ class CombatController extends GetxController {
           ally.lane.value = 'front';
           ally.ap.value -= 1;
           addLog('${ally.name} advances to the Front Line.');
-          await Future.delayed(const Duration(milliseconds: 600));
+          await _delayBetweenAttacks();
         } else if (scoreFlee > scoreAttack && ally.lane.value == 'front') {
           ally.lane.value = 'back';
           ally.ap.value -= 1;
           addLog('${ally.name} retreats to the Back Line.');
-          await Future.delayed(const Duration(milliseconds: 600));
+          await _delayBetweenAttacks();
         } else {
           final target = livingEnemies[_random.nextInt(livingEnemies.length)];
           final bool allyIsRanged = ally.aiProfile.preferredRange > 0.5;
@@ -768,11 +793,11 @@ class CombatController extends GetxController {
               ally.lane.value = 'front';
               ally.ap.value -= 1;
               addLog('${ally.name} charges to the Front Line!');
-              await Future.delayed(const Duration(milliseconds: 600));
+              await _delayBetweenAttacks();
               continue;
             } else {
               addLog('${ally.name} attacks from afar, but falls short.');
-              await Future.delayed(const Duration(milliseconds: 400));
+              await _delayBetweenAttacks();
               break;
             }
           }
@@ -838,7 +863,7 @@ class CombatController extends GetxController {
 
           String mitPercent = ((1.0 - hitResult.mitigationFactor) * 100).clamp(0, 100).toStringAsFixed(0);
           addLog('${ally.name} strikes ${target.name} with ${skill.name} for ${hitResult.finalDamage} damage! (Armor blocked $mitPercent%)');
-          await Future.delayed(const Duration(milliseconds: 700));
+          await _delayBetweenAttacks();
           checkVictoryOrDefeat();
         }
       }
@@ -900,12 +925,12 @@ class CombatController extends GetxController {
           enemy.lane.value = 'front';
           enemy.ap.value -= 1;
           addLog('The ${enemy.name} advances to the Front Line.');
-          await Future.delayed(const Duration(milliseconds: 700));
+          await _delayBetweenAttacks();
         } else if (scoreFlee > scoreAttack && enemy.lane.value == 'front') {
           enemy.lane.value = 'back';
           enemy.ap.value -= 1;
           addLog('The ${enemy.name} retreats to the Back Line.');
-          await Future.delayed(const Duration(milliseconds: 700));
+          await _delayBetweenAttacks();
         } else {
           final bool enemyIsRanged = enemy.aiProfile.preferredRange > 0.5;
           final enemyRange = enemyIsRanged ? WeaponRange.ranged : WeaponRange.melee;
@@ -914,11 +939,11 @@ class CombatController extends GetxController {
               enemy.lane.value = 'front';
               enemy.ap.value -= 1;
               addLog('The ${enemy.name} charges to the Front Line!');
-              await Future.delayed(const Duration(milliseconds: 700));
+              await _delayBetweenAttacks();
               continue;
             } else {
               addLog('The ${enemy.name} snarls from afar, out of reach.');
-              await Future.delayed(const Duration(milliseconds: 500));
+              await _delayBetweenAttacks();
               break;
             }
           }
@@ -991,6 +1016,7 @@ class CombatController extends GetxController {
 
             String mitPercent = ((1.0 - hitResult.mitigationFactor) * 100).clamp(0, 100).toStringAsFixed(0);
             addLog('The ${enemy.name} uses ${skill.name} on ${targetAlly.name} for ${hitResult.finalDamage} damage. (Armor blocked $mitPercent%)');
+            await _delayBetweenAttacks();
           } else {
             final hitResult = calculateCombatHit(
               weaponDamage: 12,
@@ -1032,10 +1058,10 @@ class CombatController extends GetxController {
             } else {
               addLog('The ${enemy.name} uses ${skill.name} for ${hitResult.finalDamage} damage. (Armor blocked $mitPercent%)');
             }
+            await _delayBetweenAttacks();
           }
         }
         checkVictoryOrDefeat();
-        await Future.delayed(const Duration(milliseconds: 700));
       }
     }
 
@@ -1048,7 +1074,7 @@ class CombatController extends GetxController {
         if (Get.testMode) {
           if (inCombat.value) rollInitiativeAndStartRound();
         } else {
-          Future.delayed(const Duration(milliseconds: 600), () {
+          Future.delayed(_combatDelayDuration, () {
             if (inCombat.value) {
               rollInitiativeAndStartRound();
             }

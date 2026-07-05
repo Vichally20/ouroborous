@@ -7,6 +7,7 @@ class SettingsState extends GetxController {
   final textSpeed = TextSpeedOption.fast.obs;
   final screenShake = true.obs;
   final cloudSync = true.obs;
+  final attackDelay = 2.0.obs;
 
   void setMasterVolume(double value) {
     masterVolume.value = value;
@@ -14,6 +15,10 @@ class SettingsState extends GetxController {
 
   void setTextSpeed(TextSpeedOption speed) {
     textSpeed.value = speed;
+  }
+
+  void setAttackDelay(double value) {
+    attackDelay.value = value;
   }
 
   void toggleScreenShake() {
@@ -29,6 +34,7 @@ class SettingsState extends GetxController {
     textSpeed.value = TextSpeedOption.normal;
     screenShake.value = true;
     cloudSync.value = false;
+    attackDelay.value = 2.0;
   }
 
   String get textSpeedLabel {
@@ -42,5 +48,10 @@ class SettingsState extends GetxController {
       case TextSpeedOption.instant:
         return 'Instant';
     }
+  }
+
+  String get attackDelayLabel {
+    if (attackDelay.value == 0) return 'Instant';
+    return '${attackDelay.value.toStringAsFixed(1)}s';
   }
 }
