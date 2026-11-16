@@ -1,225 +1,242 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../sandbox/sandbox_launcher.dart';
 import '../../states/navigation_state.dart';
+import '../combat/combat_widgets.dart' show CombatPalette;
+import '../town/town_service_sheets.dart';
 import '../widgets/etched_container.dart';
+import '../widgets/toast.dart';
 
+/// World map → city streets → district, with one header and a back button.
 class NavigationScreen extends StatelessWidget {
   const NavigationScreen({super.key});
+
+  /// Map-space size of every map canvas (markers are placed in these coordinates).
+  static const mapSize = Size(2000, 1125);
 
   @override
   Widget build(BuildContext context) {
     final nav = Get.find<NavigationState>();
 
     return Obx(() {
-      final currentMode = nav.currentMode.value;
+      final mode = nav.currentMode.value;
 
       return Scaffold(
         backgroundColor: VitruvianColors.voidBlack,
-        body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // TOP HEADER BAR WITH BREADCRUMBS
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF151310),
-                  border: Border(bottom: BorderSide(color: Color(0xFF3A2C20))),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Icon(
-                            currentMode == MapViewMode.overworld
-                                ? Icons.public
-                                : currentMode == MapViewMode.city
-                                    ? Icons.map_outlined
-                                    : Icons.location_on,
-                            color: const Color(0xFFC89B5D),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              currentMode == MapViewMode.overworld
-                                  ? 'OVERWORLD PARCHMENT MAP'
-                                  : currentMode == MapViewMode.city
-                                      ? 'CITY STREETS: ${nav.currentCity?.name.toUpperCase() ?? ""}'
-                                      : 'DISTRICT: ${nav.currentLocation?.title.toUpperCase() ?? ""}',
-                              style: VitruvianTypography.serifTitle(fontSize: 15, color: const Color(0xFFE0C8B0)),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+              decoration: const BoxDecoration(
+                color: CombatPalette.raised,
+                border: Border(bottom: BorderSide(color: CombatPalette.hairlineStrong)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    mode == MapViewMode.overworld
+                        ? Icons.public
+                        : mode == MapViewMode.city
+                            ? Icons.map_outlined
+                            : Icons.location_on_outlined,
+                    color: CombatPalette.brass,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      mode == MapViewMode.overworld
+                          ? 'TAP A CITY · DOUBLE-TAP TO TRAVEL'
+                          : mode == MapViewMode.city
+                              ? 'WORLD › ${(nav.currentCity?.name ?? '').split(' (').first.toUpperCase()}'
+                              : '${(nav.currentCity?.name ?? '').split(' (').first.toUpperCase()} › ${(nav.currentLocation?.title ?? '').toUpperCase()}',
+                      style: VitruvianTypography.serifTitle(fontSize: 15, color: CombatPalette.parchment),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 8),
-                    if (currentMode != MapViewMode.overworld)
-                      InkWell(
-                        onTap: nav.toggleViewMode,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2A2218),
-                            border: Border.all(color: const Color(0xFFC89B5D)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.zoom_out, color: Colors.amberAccent, size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                currentMode == MapViewMode.location ? 'ZOOM TO CITY' : 'ZOOM TO WORLD',
-                                style: VitruvianTypography.monospaceData(fontSize: 10, color: Colors.amberAccent),
-                              ),
-                            ],
-                          ),
-                        ),
+                  ),
+                  if (mode != MapViewMode.overworld)
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: CombatPalette.brass,
+                        side: const BorderSide(color: CombatPalette.hairlineStrong),
+                        shape: const RoundedRectangleBorder(),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
                       ),
-                  ],
-                ),
+                      onPressed: mode == MapViewMode.location ? nav.exitToCityStreets : nav.exitToOverworld,
+                      icon: const Icon(Icons.arrow_back, size: 16),
+                      label: Text(mode == MapViewMode.location ? 'STREETS' : 'WORLD',
+                          style: VitruvianTypography.monospaceData(fontSize: 11, color: CombatPalette.brass)),
+                    ),
+                ],
               ),
-
-              // VIEW PORT SWITCHER
-              Expanded(
-                child: currentMode == MapViewMode.overworld
-                    ? _buildOverworldMap(context, nav)
-                    : currentMode == MapViewMode.city
-                        ? _buildCityStreetMap(context, nav)
-                        : _buildLocationView(context, nav),
-              ),
-            ],
-          ),
+            ),
+            Expanded(
+              child: mode == MapViewMode.overworld || mode == MapViewMode.tactical
+                  ? _buildOverworldMap(context, nav)
+                  : mode == MapViewMode.city
+                      ? _buildCityStreetMap(context, nav)
+                      : _buildLocationView(context, nav),
+            ),
+          ],
         ),
       );
     });
   }
 
-  // --- TIER 1: OVERWORLD MAP ---
+  // ─── Markers ───
+
+  /// A map pin sized in map units, so it scales with zoom like the map's own ink.
+  static Widget _marker({
+    required IconData icon,
+    required String label,
+    required Color ring,
+    required Color fill,
+    required Color iconColor,
+    bool selected = false,
+    String? tag,
+    double opacity = 1,
+  }) {
+    return Opacity(
+      opacity: opacity,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (tag != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              color: CombatPalette.brass,
+              child: Text(tag, style: VitruvianTypography.monospaceData(fontSize: 16, color: CombatPalette.ground, fontWeight: FontWeight.w700)),
+            ),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: selected ? 76 : 64,
+            height: selected ? 76 : 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: fill,
+              border: Border.all(color: selected ? CombatPalette.bone : ring, width: selected ? 5 : 3.5),
+              boxShadow: [
+                BoxShadow(
+                  color: selected ? CombatPalette.brass.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.7),
+                  blurRadius: selected ? 18 : 8,
+                ),
+              ],
+            ),
+            child: Icon(icon, size: selected ? 38 : 32, color: iconColor),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: CombatPalette.raised.withValues(alpha: 0.92),
+              border: Border.all(color: selected ? CombatPalette.brass : CombatPalette.hairlineStrong, width: 2),
+            ),
+            child: Text(label,
+                style: VitruvianTypography.monospaceData(fontSize: 18, color: selected ? CombatPalette.brass : CombatPalette.bone)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Paint order: ordinary cities first, then the selected one, then where you are.
+  static int _rank(WorldCityNode c, WorldCityNode current, WorldCityNode selected) =>
+      c.id == current.id ? 2 : c.id == selected.id ? 1 : 0;
+
+  static IconData _cityIcon(WorldCityNode city) {
+    if (city.id == 'island_of_skulls') return Icons.dangerous_outlined;
+    switch (city.type) {
+      case WorldCityType.capital:
+        return Icons.castle_outlined;
+      case WorldCityType.port:
+        return Icons.anchor;
+      case WorldCityType.fort:
+        return Icons.shield_outlined;
+      case WorldCityType.tradeCity:
+        return Icons.storefront_outlined;
+    }
+  }
+
+  void _note(String message) {
+    showToast('', message, duration: const Duration(seconds: 2));
+  }
+
+  // ─── World map ───
+
   Widget _buildOverworldMap(BuildContext context, NavigationState nav) {
     final cities = nav.worldNodes.values.toList();
-    final selectedCity = nav.selectedWorldCity;
-    final currentCity = nav.currentWorldCity;
+    final selected = nav.selectedWorldCity;
+    final current = nav.currentWorldCity;
+    final route = nav.routeTo(selected.id);
+
+    void travelOrEnter(WorldCityNode city) {
+      nav.selectWorldCity(city.id);
+      if (city.id == 'island_of_skulls') {
+        SandboxLauncher.openSandbox(context);
+      } else if (city.id == nav.currentWorldCityId.value) {
+        final why = nav.enterCity(city.id);
+        if (why != null) _note(why);
+      } else if (nav.travelToSelectedCity() == null) {
+        _note(nav.unlockedCityIds.contains(city.id) ? 'No open route to ${city.name} yet.' : '${city.name} is locked.');
+      }
+    }
 
     return Stack(
       children: [
-        AutoCenterViewer(
-          target: currentCity.pos,
-          child: SizedBox(
-            width: 2000,
-            height: 1125,
+        MapViewer(
+          target: current.pos,
+          focusY: 0.36,
+          child: SizedBox.fromSize(
+            size: mapSize,
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/images/world_map.jpg',
-                    fit: BoxFit.cover,
-                  ),
-                ),
+                Positioned.fill(child: Image.asset('assets/images/maps/world_aethelgard.webp', fit: BoxFit.cover)),
                 Positioned.fill(
                   child: CustomPaint(
-                    painter: _WorldRoutePainter(cities, currentCity, selectedCity),
+                    painter: _WorldRoutePainter(cities, nav.unlockedCityIds.toSet(), [current.id, ...route]),
                   ),
                 ),
-                ...cities.map((city) {
-                  final isSelected = selectedCity.id == city.id;
-                  final isCurrent = currentCity.id == city.id;
-                  final canTravel = currentCity.connectedCityIds.contains(city.id);
-                  final isUnlocked = nav.unlockedCityIds.contains(city.id);
-
+                ...([...cities]..sort((a, b) => _rank(a, current, selected).compareTo(_rank(b, current, selected)))).map((city) {
+                  final unlocked = nav.unlockedCityIds.contains(city.id);
+                  final isCurrent = city.id == current.id;
+                  final reachable = unlocked && nav.routeTo(city.id).isNotEmpty;
                   return Positioned(
-                    left: city.pos.dx - 28,
-                    top: city.pos.dy - 28,
+                    left: city.pos.dx - 110,
+                    top: city.pos.dy - (isCurrent ? 62 : 38),
+                    width: 220,
                     child: GestureDetector(
-                      onTap: () => nav.selectWorldCity(city.id),
-                      onDoubleTap: () {
-                        if (city.id == 'island_of_skulls') {
-                          SandboxLauncher.openSandbox(context);
-                        } else {
-                          nav.enterCity(city.id);
-                        }
-                      },
                       behavior: HitTestBehavior.opaque,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: isSelected ? 56 : 48,
-                            height: isSelected ? 56 : 48,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: !isUnlocked
-                                  ? const Color(0xFF1F1A15)
-                                  : isCurrent
-                                      ? const Color(0xFFC89B5D)
-                                      : canTravel
-                                          ? const Color(0xFF1E3A3A)
-                                          : const Color(0xFF151310),
-                              border: Border.all(
-                                color: isSelected
-                                    ? Colors.white
-                                    : !isUnlocked
-                                        ? Colors.redAccent.withValues(alpha: 0.5)
-                                        : isCurrent
-                                            ? Colors.white70
-                                            : canTravel
-                                                ? Colors.cyanAccent
-                                                : const Color(0xFF5A4A3A),
-                                width: isSelected ? 3.0 : 2.0,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: isSelected
-                                      ? Colors.amberAccent.withValues(alpha: 0.6)
-                                      : Colors.black87,
-                                  blurRadius: isSelected ? 12 : 6,
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              !isUnlocked
-                                  ? Icons.lock
-                                  : city.id == 'island_of_skulls'
-                                      ? Icons.dangerous
-                                      : city.type == WorldCityType.capital
-                                          ? Icons.castle
-                                          : city.type == WorldCityType.port
-                                              ? Icons.anchor
-                                              : Icons.shield,
-                              size: isSelected ? 28 : 22,
-                              color: !isUnlocked
-                                  ? Colors.redAccent
-                                  : isCurrent
-                                      ? const Color(0xFF151310)
-                                      : canTravel
-                                          ? Colors.cyanAccent
-                                          : const Color(0xFFC89B5D),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF151310).withValues(alpha: 0.85),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: const Color(0xFF3A2C20)),
-                            ),
-                            child: Text(
-                              city.name,
-                              style: VitruvianTypography.monospaceData(
-                                fontSize: 10,
-                                color: isSelected ? Colors.amberAccent : VitruvianColors.agedBone,
-                              ),
-                            ),
-                          ),
-                        ],
+                      onTap: () => nav.selectWorldCity(city.id),
+                      onDoubleTap: () => travelOrEnter(city),
+                      child: Semantics(
+                        button: true,
+                        label: '${city.name}${isCurrent ? ', you are here' : unlocked ? '' : ', locked'}',
+                        child: _marker(
+                          icon: unlocked ? _cityIcon(city) : Icons.lock_outline,
+                          label: city.name.replaceAll(' (Sandbox)', ''),
+                          selected: city.id == selected.id,
+                          tag: isCurrent ? 'YOU ARE HERE' : null,
+                          ring: isCurrent
+                              ? CombatPalette.brass
+                              : reachable
+                                  ? CombatPalette.parchment
+                                  : unlocked
+                                      ? CombatPalette.sepia
+                                      : CombatPalette.rust,
+                          fill: isCurrent ? CombatPalette.brass : CombatPalette.raised,
+                          iconColor: isCurrent
+                              ? CombatPalette.ground
+                              : unlocked
+                                  ? CombatPalette.parchment
+                                  : CombatPalette.wound,
+                          opacity: unlocked ? 1 : 0.75,
+                        ),
                       ),
                     ),
                   );
@@ -228,198 +245,144 @@ class NavigationScreen extends StatelessWidget {
             ),
           ),
         ),
-
-        // OVERWORLD BOTTOM LEDGER
         Positioned(
-          left: 16,
-          right: 16,
-          bottom: 16,
-          child: EtchedContainer(
-            backgroundColor: const Color(0xFF151310).withValues(alpha: 0.95),
-            borderColor: const Color(0xFFC89B5D),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Icon(
-                            selectedCity.type == WorldCityType.capital ? Icons.castle : Icons.anchor,
-                            color: const Color(0xFFC89B5D),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              selectedCity.name.toUpperCase(),
-                              style: VitruvianTypography.serifTitle(fontSize: 16, color: const Color(0xFFE0C8B0)),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2A2218),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '${selectedCity.continent.toUpperCase()} | ${selectedCity.type.name.toUpperCase()}',
-                        style: VitruvianTypography.monospaceData(fontSize: 10, color: const Color(0xFFC89B5D)),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  selectedCity.lore,
-                  style: VitruvianTypography.serifBody(fontSize: 13, color: VitruvianColors.agedBone),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: currentCity.id == selectedCity.id
-                              ? const Color(0xFF3E2B15)
-                              : currentCity.connectedCityIds.contains(selectedCity.id)
-                                  ? const Color(0xFF1E3A3A)
-                                  : const Color(0xFF1E1C18),
-                          foregroundColor: currentCity.id == selectedCity.id
-                              ? Colors.amberAccent
-                              : currentCity.connectedCityIds.contains(selectedCity.id)
-                                  ? Colors.cyanAccent
-                                  : Colors.white38,
-                          side: BorderSide(
-                            color: currentCity.id == selectedCity.id
-                                ? Colors.amberAccent
-                                : currentCity.connectedCityIds.contains(selectedCity.id)
-                                    ? Colors.cyanAccent
-                                    : Colors.transparent,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        icon: Icon(
-                          currentCity.id == selectedCity.id ? Icons.location_city : Icons.flight_takeoff,
-                          size: 18,
-                        ),
-                        label: Text(
-                          selectedCity.id == 'island_of_skulls'
-                              ? 'OPEN SANDBOX DUNGEON (WAVES 1-30)'
-                              : currentCity.id == selectedCity.id
-                                  ? 'ENTER CITY STREETS'
-                                  : currentCity.connectedCityIds.contains(selectedCity.id)
-                                      ? 'TRAVERSE ALONG ROUTE'
-                                      : 'ROUTE UNAVAILABLE DIRECTLY',
-                          style: VitruvianTypography.monospaceData(fontSize: 12),
-                        ),
-                        onPressed: () {
-                          if (selectedCity.id == 'island_of_skulls') {
-                            SandboxLauncher.openSandbox(context);
-                          } else if (currentCity.id == selectedCity.id) {
-                            nav.enterCity(selectedCity.id);
-                          } else if (currentCity.connectedCityIds.contains(selectedCity.id)) {
-                            nav.travelToSelectedCity();
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          left: 12,
+          right: 12,
+          bottom: 12,
+          child: _worldLedger(context, nav, selected, current, route, travelOrEnter),
         ),
       ],
     );
   }
 
-  // --- TIER 2: CITY STREET MAP ---
+  Widget _worldLedger(BuildContext context, NavigationState nav, WorldCityNode selected, WorldCityNode current,
+      List<String> route, void Function(WorldCityNode) act) {
+    final unlocked = nav.unlockedCityIds.contains(selected.id);
+    final isCurrent = selected.id == current.id;
+    final sandbox = selected.id == 'island_of_skulls';
+
+    String label;
+    bool enabled = true;
+    String? detail;
+    if (sandbox) {
+      label = 'OPEN THE PROVING GROUNDS';
+    } else if (!unlocked) {
+      label = 'LOCKED';
+      enabled = false;
+      detail = 'No route is known. The chronicle may reveal one.';
+    } else if (isCurrent) {
+      if (nav.isCharted(selected.id)) {
+        label = 'ENTER CITY STREETS';
+      } else {
+        label = 'STREETS NOT YET CHARTED';
+        enabled = false;
+        detail = 'You are here, but this city has no street map yet.';
+      }
+    } else if (route.isEmpty) {
+      label = 'NO OPEN ROUTE';
+      enabled = false;
+      detail = 'Every road there runs through a locked region.';
+    } else {
+      label = route.length == 1 ? 'TRAVEL' : 'TRAVEL · ${route.length} STOPS';
+      if (route.length > 1) {
+        detail = 'Via ${route.sublist(0, route.length - 1).map((id) => nav.worldNodes[id]!.name.split(' (').first).join(' → ')}';
+      }
+    }
+
+    return EtchedContainer(
+      backgroundColor: CombatPalette.raised.withValues(alpha: 0.96),
+      borderColor: CombatPalette.hairlineStrong,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(selected.name.toUpperCase(),
+                    style: VitruvianTypography.serifTitle(fontSize: 16, color: CombatPalette.parchment),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 8),
+              Text('${selected.continent.toUpperCase()} · ${selected.type.name.toUpperCase()}',
+                  style: VitruvianTypography.monospaceData(fontSize: 10, color: CombatPalette.brass)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(selected.lore,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: VitruvianTypography.serifBody(fontSize: 13, color: CombatPalette.bone)),
+          if (detail != null) ...[
+            const SizedBox(height: 6),
+            Text(detail, style: VitruvianTypography.serifBody(fontSize: 12, color: CombatPalette.ash).copyWith(fontStyle: FontStyle.italic)),
+          ],
+          const SizedBox(height: 10),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              backgroundColor: enabled ? CombatPalette.brass : Colors.transparent,
+              foregroundColor: enabled ? CombatPalette.ground : CombatPalette.ash,
+              disabledForegroundColor: CombatPalette.ash,
+              side: BorderSide(color: enabled ? CombatPalette.brass : CombatPalette.hairlineStrong),
+              shape: const RoundedRectangleBorder(),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            onPressed: enabled ? () => act(selected) : null,
+            child: Text(label, style: VitruvianTypography.monospaceData(fontSize: 12, color: enabled ? CombatPalette.ground : CombatPalette.ash)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── City streets ───
+
   Widget _buildCityStreetMap(BuildContext context, NavigationState nav) {
     final city = nav.currentCity;
-    if (city == null) return const Center(child: Text("No City Data Loaded"));
+    if (city == null) return const Center(child: Text('No city data loaded'));
 
     final cityNodes = nav.nodes.values.where((n) => n.cityId == city.id).toList();
+    final presentId = nav.presentLocationId.value;
+    final present = presentId != null ? nav.nodes[presentId] : null;
+    final unlocked = nav.unlockedLocationIds.toSet();
+    final focus = (present != null && present.cityId == city.id) ? present.mapPos : cityNodes.first.mapPos;
 
     return Stack(
       children: [
-        AutoCenterViewer(
-          target: nav.currentNode.mapPos,
-          child: SizedBox(
-            width: 2000,
-            height: 1125,
+        MapViewer(
+          target: focus,
+          focusY: 0.45,
+          child: SizedBox.fromSize(
+            size: mapSize,
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: Image.asset(
-                    city.streetMapImage,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _CityRoutePainter(cityNodes, nav.unlockedLocationIds),
-                  ),
-                ),
+                Positioned.fill(child: Image.asset(city.streetMapImage, fit: BoxFit.cover)),
+                Positioned.fill(child: CustomPaint(painter: _CityRoutePainter(cityNodes, unlocked))),
                 ...cityNodes.map((node) {
-                  final isUnlocked = nav.unlockedLocationIds.contains(node.id);
-
+                  final isUnlocked = unlocked.contains(node.id);
+                  final isHere = node.id == presentId;
                   return Positioned(
-                    left: node.mapPos.dx - 40,
-                    top: node.mapPos.dy - 35,
+                    left: node.mapPos.dx - 150,
+                    top: node.mapPos.dy - (isHere ? 62 : 38),
+                    width: 300,
                     child: GestureDetector(
-                      onTap: () => nav.moveToLocation(node.id),
                       behavior: HitTestBehavior.opaque,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isUnlocked ? const Color(0xFF1E3A3A) : const Color(0xFF1F1A15),
-                              border: Border.all(
-                                color: isUnlocked ? Colors.cyanAccent : Colors.redAccent.withValues(alpha: 0.5),
-                                width: isUnlocked ? 2.5 : 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: isUnlocked ? Colors.cyanAccent.withValues(alpha: 0.4) : Colors.black87,
-                                  blurRadius: isUnlocked ? 10 : 4,
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              isUnlocked ? Icons.location_on : Icons.lock,
-                              size: 26,
-                              color: isUnlocked ? Colors.cyanAccent : Colors.redAccent,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF151310).withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: isUnlocked ? const Color(0xFFC89B5D) : const Color(0xFF3A2C20)),
-                            ),
-                            child: Text(
-                              node.title,
-                              style: VitruvianTypography.monospaceData(
-                                fontSize: 11,
-                                color: isUnlocked ? Colors.amberAccent : Colors.grey,
-                              ),
-                            ),
-                          ),
-                        ],
+                      onTap: () {
+                        final why = nav.moveToLocation(node.id);
+                        if (why != null) _note(why);
+                      },
+                      child: Semantics(
+                        button: true,
+                        label: '${node.title}${isHere ? ', you are here' : isUnlocked ? '' : ', locked'}',
+                        child: _marker(
+                          icon: isUnlocked ? Icons.location_on_outlined : Icons.lock_outline,
+                          label: node.title,
+                          tag: isHere ? 'YOU ARE HERE' : null,
+                          ring: isHere ? CombatPalette.brass : isUnlocked ? CombatPalette.parchment : CombatPalette.rust,
+                          fill: isHere ? CombatPalette.brass : CombatPalette.raised,
+                          iconColor: isHere ? CombatPalette.ground : isUnlocked ? CombatPalette.parchment : CombatPalette.wound,
+                          opacity: isUnlocked ? 1 : 0.75,
+                        ),
                       ),
                     ),
                   );
@@ -428,39 +391,18 @@ class NavigationScreen extends StatelessWidget {
             ),
           ),
         ),
-
-        // CITY FLOATING HEADER
         Positioned(
-          top: 16,
-          left: 16,
-          right: 16,
+          left: 12,
+          right: 12,
+          bottom: 12,
           child: EtchedContainer(
-            backgroundColor: const Color(0xFF151310).withValues(alpha: 0.9),
-            borderColor: const Color(0xFFC89B5D),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    'SELECT AN UNLOCKED DISTRICT TO ENTER',
-                    style: VitruvianTypography.monospaceData(fontSize: 12, color: const Color(0xFFE0C8B0)),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2A2218),
-                    foregroundColor: Colors.amberAccent,
-                    side: const BorderSide(color: Color(0xFFC89B5D)),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                  icon: const Icon(Icons.public, size: 16),
-                  label: Text('OVERWORLD', style: VitruvianTypography.monospaceData(fontSize: 11)),
-                  onPressed: nav.exitToOverworld,
-                ),
-              ],
+            backgroundColor: CombatPalette.raised.withValues(alpha: 0.94),
+            borderColor: CombatPalette.hairlineStrong,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Text(
+              '${unlocked.where((id) => nav.nodes[id]?.cityId == city.id).length} of ${cityNodes.length} districts open · '
+              'tap one to go there${present != null ? ' · you are at ${present.title}' : ''}',
+              style: VitruvianTypography.serifBody(fontSize: 13, color: CombatPalette.bone),
             ),
           ),
         ),
@@ -479,7 +421,7 @@ class NavigationScreen extends StatelessWidget {
           child: Image.asset(
             node.backgroundImage,
             fit: BoxFit.cover,
-            color: Colors.black.withValues(alpha: 0.5),
+            color: Colors.black.withValues(alpha: 0.1),
             colorBlendMode: BlendMode.darken,
           ),
         ),
@@ -490,9 +432,10 @@ class NavigationScreen extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.4),
-                  const Color(0xFF151310),
+                  Colors.transparent,
+                  const Color(0xEE151310),
                 ],
+                stops: const [0.0, 0.62],
               ),
             ),
           ),
@@ -515,19 +458,16 @@ class NavigationScreen extends StatelessWidget {
                           Expanded(
                             child: Text(
                               node.title.toUpperCase(),
-                              style: VitruvianTypography.serifTitle(fontSize: 22, color: const Color(0xFFE0C8B0)),
+                              style: VitruvianTypography.serifTitle(fontSize: 18, color: const Color(0xFFE0C8B0)),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1E3A3A),
-                              border: Border.all(color: Colors.cyanAccent),
-                            ),
+                            color: CombatPalette.brass,
                             child: Text(
-                              'ACTIVE DISTRICT',
-                              style: VitruvianTypography.monospaceData(fontSize: 10, color: Colors.cyanAccent),
+                              'YOU ARE HERE',
+                              style: VitruvianTypography.monospaceData(fontSize: 10, color: CombatPalette.ground),
                             ),
                           ),
                         ],
@@ -535,14 +475,14 @@ class NavigationScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          const Icon(Icons.volume_up, size: 16, color: Colors.amberAccent),
+                          const Icon(Icons.volume_up, size: 16, color: CombatPalette.brass),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               node.ambientAudio,
                               style: VitruvianTypography.serifBody(
                                 fontSize: 14,
-                                color: Colors.amberAccent.withValues(alpha: 0.9),
+                                color: CombatPalette.brass,
                               ),
                             ),
                           ),
@@ -590,6 +530,7 @@ class NavigationScreen extends StatelessWidget {
                     separatorBuilder: (context, idx) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final npc = node.npcs[index];
+                      final service = node.npcServices[npc];
                       return EtchedContainer(
                         backgroundColor: const Color(0xFF1E1C18),
                         borderColor: const Color(0xFF5A4A3A),
@@ -597,27 +538,36 @@ class NavigationScreen extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.person, color: Color(0xFFC89B5D), size: 22),
-                                const SizedBox(width: 12),
-                                Text(
-                                  npc,
-                                  style: VitruvianTypography.serifTitle(fontSize: 16, color: Colors.white),
-                                ),
-                              ],
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.person, color: Color(0xFFC89B5D), size: 22),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      npc,
+                                      style: VitruvianTypography.serifTitle(fontSize: 16, color: Colors.white),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF2A2218),
-                                foregroundColor: Colors.amberAccent,
+                                foregroundColor: CombatPalette.brass,
                                 side: const BorderSide(color: Color(0xFFC89B5D)),
                               ),
                               onPressed: () {
-                                Get.snackbar('Interaction', 'Speaking with $npc...',
-                                    backgroundColor: const Color(0xFF151310), colorText: Colors.amberAccent);
+                                if (service != null) {
+                                  showTownService(context, service, npc);
+                                } else {
+                                  _note('$npc has nothing to say yet.');
+                                }
                               },
-                              child: Text('INTERACT', style: VitruvianTypography.monospaceData(fontSize: 11)),
+                              child: Text(service != null ? townServiceLabel(service) : 'INTERACT',
+                                  style: VitruvianTypography.monospaceData(fontSize: 11)),
                             ),
                           ],
                         ),
@@ -628,9 +578,10 @@ class NavigationScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3E1212),
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.redAccent),
+                    backgroundColor: CombatPalette.raised,
+                    foregroundColor: CombatPalette.brass,
+                    side: const BorderSide(color: CombatPalette.hairlineStrong),
+                    shape: const RoundedRectangleBorder(),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   icon: const Icon(Icons.exit_to_app),
@@ -646,153 +597,147 @@ class NavigationScreen extends StatelessWidget {
   }
 }
 
+// ─── Route painters ──────────────────────────────────────────────────────────
+
+void _dashed(Canvas canvas, Offset p1, Offset p2, Paint paint, {double dash = 10, double gap = 8}) {
+  final dist = (p2 - p1).distance;
+  if (dist == 0) return;
+  final unit = (p2 - p1) / dist;
+  double at = 0;
+  while (at < dist) {
+    canvas.drawLine(p1 + unit * at, p1 + unit * math.min(at + dash, dist), paint);
+    at += dash + gap;
+  }
+}
+
+/// World routes: the planned route (current → selected) in brass, open roads in
+/// sepia, roads touching a locked region faint.
 class _WorldRoutePainter extends CustomPainter {
   final List<WorldCityNode> cities;
-  final WorldCityNode currentCity;
-  final WorldCityNode selectedCity;
+  final Set<String> unlocked;
+  final List<String> path;
 
-  _WorldRoutePainter(this.cities, this.currentCity, this.selectedCity);
+  _WorldRoutePainter(this.cities, this.unlocked, this.path);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final cityMap = {for (var c in cities) c.id: c};
-    final paintedPairs = <String>{};
-
-    final inactivePaint = Paint()
-      ..color = const Color(0xFF5A4A3A).withValues(alpha: 0.6)
-      ..strokeWidth = 2.5
+    final byId = {for (final c in cities) c.id: c};
+    final onPath = <String>{};
+    for (var i = 0; i + 1 < path.length; i++) {
+      final a = path[i], b = path[i + 1];
+      onPath.add(a.compareTo(b) < 0 ? '$a-$b' : '$b-$a');
+    }
+    final done = <String>{};
+    final open = Paint()
+      ..color = CombatPalette.sepia.withValues(alpha: 0.85)
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke;
+    final shut = Paint()
+      ..color = CombatPalette.rust.withValues(alpha: 0.45)
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+    final planned = Paint()
+      ..color = CombatPalette.brass
+      ..strokeWidth = 7
       ..style = PaintingStyle.stroke;
 
-    final activePaint = Paint()
-      ..color = Colors.cyanAccent.withValues(alpha: 0.85)
-      ..strokeWidth = 3.5
-      ..style = PaintingStyle.stroke;
-
-    for (var city in cities) {
-      for (var targetId in city.connectedCityIds) {
-        if (!cityMap.containsKey(targetId)) continue;
-        final pairKey = city.id.compareTo(targetId) < 0 ? '${city.id}-$targetId' : '$targetId-${city.id}';
-        if (paintedPairs.contains(pairKey)) continue;
-        paintedPairs.add(pairKey);
-
-        final target = cityMap[targetId]!;
-        final isActiveRoute = (city.id == currentCity.id && targetId == selectedCity.id) ||
-                              (targetId == currentCity.id && city.id == selectedCity.id);
-
-        _drawDottedLine(canvas, city.pos, target.pos, isActiveRoute ? activePaint : inactivePaint);
+    for (final c in cities) {
+      for (final t in c.connectedCityIds) {
+        final other = byId[t];
+        if (other == null) continue;
+        final key = c.id.compareTo(t) < 0 ? '${c.id}-$t' : '$t-${c.id}';
+        if (!done.add(key)) continue;
+        final paint = onPath.contains(key)
+            ? planned
+            : unlocked.contains(c.id) && unlocked.contains(t)
+                ? open
+                : shut;
+        _dashed(canvas, c.pos, other.pos, paint);
       }
     }
   }
 
-  void _drawDottedLine(Canvas canvas, Offset p1, Offset p2, Paint paint) {
-    final maxDist = (p2 - p1).distance;
-    const dashLen = 8.0;
-    const gapLen = 6.0;
-    double currentDist = 0.0;
-    final unitVector = (p2 - p1) / maxDist;
-
-    while (currentDist < maxDist) {
-      final start = p1 + unitVector * currentDist;
-      currentDist += dashLen;
-      final end = p1 + unitVector * (currentDist > maxDist ? maxDist : currentDist);
-      canvas.drawLine(start, end, paint);
-      currentDist += gapLen;
-    }
-  }
-
   @override
-  bool shouldRepaint(covariant _WorldRoutePainter oldDelegate) => true;
+  bool shouldRepaint(covariant _WorldRoutePainter old) =>
+      old.path.join() != path.join() || old.unlocked.length != unlocked.length;
 }
 
 class _CityRoutePainter extends CustomPainter {
   final List<NavigationNode> nodes;
-  final Set<String> unlockedIds;
+  final Set<String> unlocked;
 
-  _CityRoutePainter(this.nodes, this.unlockedIds);
+  _CityRoutePainter(this.nodes, this.unlocked);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final nodeMap = {for (var n in nodes) n.id: n};
-    final paintedPairs = <String>{};
-
-    final lockedPaint = Paint()
-      ..color = Colors.redAccent.withValues(alpha: 0.35)
-      ..strokeWidth = 2.0
+    final byId = {for (final n in nodes) n.id: n};
+    final done = <String>{};
+    final open = Paint()
+      ..color = CombatPalette.brass.withValues(alpha: 0.9)
+      ..strokeWidth = 5
       ..style = PaintingStyle.stroke;
-
-    final unlockedPaint = Paint()
-      ..color = Colors.cyanAccent.withValues(alpha: 0.75)
-      ..strokeWidth = 3.0
+    final shut = Paint()
+      ..color = CombatPalette.rust.withValues(alpha: 0.5)
+      ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
-
-    for (var node in nodes) {
-      for (var targetId in node.connectedNodeIds) {
-        if (!nodeMap.containsKey(targetId)) continue;
-        final pairKey = node.id.compareTo(targetId) < 0 ? '${node.id}-$targetId' : '$targetId-${node.id}';
-        if (paintedPairs.contains(pairKey)) continue;
-        paintedPairs.add(pairKey);
-
-        final target = nodeMap[targetId]!;
-        final bothUnlocked = unlockedIds.contains(node.id) && unlockedIds.contains(targetId);
-
-        _drawDottedLine(canvas, node.mapPos, target.mapPos, bothUnlocked ? unlockedPaint : lockedPaint);
+    for (final n in nodes) {
+      for (final t in n.connectedNodeIds) {
+        final other = byId[t];
+        if (other == null) continue;
+        final key = n.id.compareTo(t) < 0 ? '${n.id}-$t' : '$t-${n.id}';
+        if (!done.add(key)) continue;
+        _dashed(canvas, n.mapPos, other.mapPos,
+            unlocked.contains(n.id) && unlocked.contains(t) ? open : shut, dash: 9, gap: 7);
       }
     }
   }
 
-  void _drawDottedLine(Canvas canvas, Offset p1, Offset p2, Paint paint) {
-    final maxDist = (p2 - p1).distance;
-    const dashLen = 6.0;
-    const gapLen = 5.0;
-    double currentDist = 0.0;
-    final unitVector = (p2 - p1) / maxDist;
-
-    while (currentDist < maxDist) {
-      final start = p1 + unitVector * currentDist;
-      currentDist += dashLen;
-      final end = p1 + unitVector * (currentDist > maxDist ? maxDist : currentDist);
-      canvas.drawLine(start, end, paint);
-      currentDist += gapLen;
-    }
-  }
-
   @override
-  bool shouldRepaint(covariant _CityRoutePainter oldDelegate) => true;
+  bool shouldRepaint(covariant _CityRoutePainter old) =>
+      old.unlocked.length != unlocked.length || !old.unlocked.containsAll(unlocked);
 }
 
-class AutoCenterViewer extends StatefulWidget {
+// ─── Map viewer ──────────────────────────────────────────────────────────────
+
+/// Pan/zoom viewer for a fixed-size map canvas. Opens zoomed out (the map always
+/// covers the viewport) with [target] centred horizontally and at [focusY] of the
+/// visible height, so it sits above any bottom panel. Re-centres when the target moves.
+class MapViewer extends StatefulWidget {
   final Widget child;
   final Offset target;
-  const AutoCenterViewer({super.key, required this.child, required this.target});
+  final double focusY;
+  final Size canvas;
+
+  const MapViewer({
+    super.key,
+    required this.child,
+    required this.target,
+    this.focusY = 0.5,
+    this.canvas = NavigationScreen.mapSize,
+  });
 
   @override
-  State<AutoCenterViewer> createState() => _AutoCenterViewerState();
+  State<MapViewer> createState() => _MapViewerState();
 }
 
-class _AutoCenterViewerState extends State<AutoCenterViewer> {
-  late final TransformationController _controller;
+class _MapViewerState extends State<MapViewer> {
+  final _controller = TransformationController();
+  Size? _viewport;
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = TransformationController();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _centerMap());
+  double _minScale(Size v) => math.max(v.width / widget.canvas.width, v.height / widget.canvas.height);
+
+  void _center(Size v) {
+    final s = math.max(_minScale(v), 0.5);
+    final w = widget.canvas.width * s, h = widget.canvas.height * s;
+    final tx = (v.width / 2 - widget.target.dx * s).clamp(v.width - w, 0.0);
+    final ty = (v.height * widget.focusY - widget.target.dy * s).clamp(v.height - h, 0.0);
+    _controller.value = Matrix4.diagonal3Values(s, s, 1)..setTranslationRaw(tx, ty, 0);
   }
 
   @override
-  void didUpdateWidget(AutoCenterViewer oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.target != widget.target) {
-      _centerMap();
-    }
-  }
-
-  void _centerMap() {
-    if (!mounted) return;
-    final size = MediaQuery.of(context).size;
-    final x = -(widget.target.dx) + (size.width / 2);
-    final y = -(widget.target.dy) + (size.height / 2);
-    _controller.value = Matrix4.identity()..translateByDouble(x, y, 0.0, 1.0);
+  void didUpdateWidget(covariant MapViewer old) {
+    super.didUpdateWidget(old);
+    if (old.target != widget.target && _viewport != null) _center(_viewport!);
   }
 
   @override
@@ -803,13 +748,22 @@ class _AutoCenterViewerState extends State<AutoCenterViewer> {
 
   @override
   Widget build(BuildContext context) {
-    return InteractiveViewer(
-      transformationController: _controller,
-      minScale: 0.35,
-      maxScale: 3.5,
-      constrained: false,
-      boundaryMargin: const EdgeInsets.all(400),
-      child: widget.child,
-    );
+    return LayoutBuilder(builder: (context, constraints) {
+      final v = constraints.biggest;
+      if (_viewport != v) {
+        _viewport = v;
+        _center(v);
+      }
+      return ClipRect(
+        child: InteractiveViewer(
+          transformationController: _controller,
+          constrained: false,
+          minScale: _minScale(v),
+          maxScale: 2.5,
+          boundaryMargin: EdgeInsets.zero,
+          child: widget.child,
+        ),
+      );
+    });
   }
 }

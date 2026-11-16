@@ -1,0 +1,1112 @@
+{
+  "id": "act1",
+  "title": "ACT I — SALTMERE",
+  "startNodeId": "a1_hills",
+  "nodes": {
+    "a1_hills": {
+      "id": "a1_hills",
+      "title": "THE HILLS ABOVE SALTMERE",
+      "paragraphs": [
+        "It is your third night in the hills. The boats came back light this autumn, the reeve still wants his tithe, and meat would carry you and {sister} past the first frost. Your snares run along the pine ridge, past the old shrine of Lavrith where nobody leaves offerings any more.",
+        "The last snare holds a vixen. Her foreleg is torn to the bone, and three kits watch you from the bracken without a sound. A good pelt fetches twenty crowns at the market. You kneel and draw your knife.",
+        "That is when you see the light below. Fire on the coast. Not one fire but a string of them, six or seven, glowing along the shore from south to north. The nearest is Saltmere."
+      ],
+      "choices": [
+        {
+          "id": "run",
+          "text": "Leave everything and run",
+          "nextNodeId": "a1_return",
+          "effects": [
+            "flag ran_at_once"
+          ],
+          "result": "You leave the snares, the vixen and the night behind, and run."
+        },
+        {
+          "id": "free",
+          "text": "Cut the vixen free, then run",
+          "nextNodeId": "a1_return",
+          "effects": [
+            "mercy +1",
+            "flag freed_vixen"
+          ],
+          "result": "She limps into the bracken, and her kits go after her. Then you run."
+        },
+        {
+          "id": "pelt",
+          "text": "Kill her cleanly and take the pelt",
+          "nextNodeId": "a1_return",
+          "effects": [
+            "crowns +20",
+            "flag took_pelt"
+          ],
+          "result": "Twenty crowns of fur, rolled under your arm. The kits watch you go."
+        },
+        {
+          "id": "watch",
+          "text": "Watch the fires before you go",
+          "nextNodeId": "a1_return",
+          "needs": "attr.insight >= 12",
+          "needsLabel": "Insight 12",
+          "effects": [
+            "leads +1",
+            "journal The coast fires were lit south to north, hours apart. Someone is working up the coast."
+          ],
+          "result": "They were lit in order, south to north, a few hours apart. Someone is working their way up the coast."
+        }
+      ]
+    },
+    "a1_return": {
+      "id": "a1_return",
+      "title": "SALTMERE AT DAWN",
+      "paragraphs": [
+        {
+          "if": "ran_at_once && !(seen.a1_house || seen.a1_square || seen.a1_cove)",
+          "text": "You run the goat path down in the dark, falling twice. You reach the dunes before dawn. Out in the cove a last longboat is pulling away, its lantern hooded."
+        },
+        {
+          "if": "!ran_at_once && !(seen.a1_house || seen.a1_square || seen.a1_cove)",
+          "text": "You run the goat path down in the dark, falling twice. By the time you reach the dunes the sun is up, and the sea is empty."
+        },
+        {
+          "if": "!(seen.a1_house || seen.a1_square || seen.a1_cove)",
+          "text": "Saltmere is still burning. The jetty is gone to the waterline and every boat that floated is holed or taken. Garrick the cooper sits on his own doorstep as if resting, and does not answer when you say his name."
+        },
+        {
+          "if": "!(seen.a1_house || seen.a1_square || seen.a1_cove)",
+          "text": "Your door hangs from one hinge. {sister}'s bed is empty and her shawl is on the floor, trodden into the ashes. From the square you hear Old Brena counting names aloud, and someone weeping. Down at the cove, the sand is churned with footprints and the long grooves of keels."
+        },
+        {
+          "if": "!(!(seen.a1_house || seen.a1_square || seen.a1_cove))",
+          "text": "You stand in the lane between the burnt houses. Smoke still hangs over the roofs, and the day is wearing on."
+        }
+      ],
+      "choices": [
+        {
+          "id": "house",
+          "text": "Search your house",
+          "nextNodeId": "a1_house",
+          "if": "!seen.a1_house"
+        },
+        {
+          "id": "square",
+          "text": "Go to the square, to the survivors",
+          "nextNodeId": "a1_square",
+          "if": "!seen.a1_square"
+        },
+        {
+          "id": "cove",
+          "text": "Follow the tracks down to the cove",
+          "nextNodeId": "a1_cove",
+          "if": "!seen.a1_cove"
+        },
+        {
+          "id": "shout",
+          "text": "Shout {sister}'s name until your voice breaks",
+          "nextNodeId": "a1_square_tam",
+          "once": true,
+          "effects": [
+            "sanity -5",
+            "bond.tam +1"
+          ],
+          "result": "Nobody answers but Tam, who comes running across the ashes.",
+          "if": "!seen.a1_square"
+        },
+        {
+          "id": "night_cove",
+          "text": "Wait for nightfall",
+          "nextNodeId": "a1_dusk",
+          "if": "seen.a1_cove"
+        },
+        {
+          "id": "night",
+          "text": "Wait for nightfall",
+          "nextNodeId": "a1_pyre",
+          "if": "!seen.a1_cove"
+        }
+      ],
+      "onEnter": [
+        "sanity -5"
+      ]
+    },
+    "a1_house": {
+      "id": "a1_house",
+      "title": "YOUR HOUSE",
+      "paragraphs": [
+        {
+          "if": "!(house_frame || house_chest || house_hearth)",
+          "text": "The table is split and every pot is smashed. Someone turned this house over in a hurry, looking for something, or someone."
+        },
+        {
+          "if": "house_frame || house_chest || house_hearth",
+          "text": "You stand in the middle of the room your family lived in. It is very quiet."
+        }
+      ],
+      "choices": [
+        {
+          "id": "frame",
+          "text": "Kneel by the doorframe",
+          "nextNodeId": "a1_house_frame",
+          "if": "!house_frame"
+        },
+        {
+          "id": "chest",
+          "text": "Open your mother's chest",
+          "nextNodeId": "a1_house_chest",
+          "if": "!house_chest"
+        },
+        {
+          "id": "hearth",
+          "text": "Lift the hearthstone",
+          "nextNodeId": "a1_house_hearth",
+          "if": "!house_hearth"
+        },
+        {
+          "id": "out",
+          "text": "Go back outside",
+          "nextNodeId": "a1_return",
+          "if": "house_frame || house_chest || house_hearth"
+        }
+      ]
+    },
+    "a1_house_frame": {
+      "id": "a1_house_frame",
+      "title": "YOUR HOUSE",
+      "paragraphs": [
+        "Low on the doorframe, where {sister} marks her height each spring, there are fresh scratches. She must have done it with a nail while they held her, the letters crooked and deep: THEY HAD A LIST.",
+        "Not a raid for plunder, then. They came for particular people, and she was one of them. Her shawl lies at your feet, trodden into the ash."
+      ],
+      "choices": [
+        {
+          "id": "shawl",
+          "text": "Take her shawl",
+          "nextNodeId": "a1_house",
+          "effects": [
+            "sanity +5",
+            "flag has_shawl"
+          ],
+          "result": "It still smells of woodsmoke and of her."
+        },
+        {
+          "id": "leave_shawl",
+          "text": "Leave it where it fell",
+          "nextNodeId": "a1_house"
+        }
+      ],
+      "onEnter": [
+        "flag house_frame",
+        "leads +1",
+        "flag knows_list",
+        "journal They had a list. The raiders came for particular people."
+      ]
+    },
+    "a1_house_chest": {
+      "id": "a1_house_chest",
+      "title": "YOUR HOUSE",
+      "paragraphs": [
+        "Your mother's chest has been forced open and its blankets thrown out. At the bottom lies the one thing she never let you touch: a black iron pin, plain and heavy, that she wore at her throat and never explained.",
+        "The morning is cold, but the pin is warm in your hand."
+      ],
+      "choices": [
+        {
+          "id": "pin",
+          "text": "Pin it at your throat, where she wore it",
+          "nextNodeId": "a1_house",
+          "effects": [
+            "flag has_iron_pin"
+          ],
+          "result": "It stays warm against your skin."
+        },
+        {
+          "id": "leave_pin",
+          "text": "Put it back and close the lid",
+          "nextNodeId": "a1_house"
+        }
+      ],
+      "onEnter": [
+        "flag house_chest"
+      ]
+    },
+    "a1_house_hearth": {
+      "id": "a1_house_hearth",
+      "title": "YOUR HOUSE",
+      "paragraphs": [
+        "The tin under the hearthstone is still there, coins and all: thirty-five crowns, everything your family saved. Whoever came here was not looking for money."
+      ],
+      "choices": [
+        {
+          "id": "tin",
+          "text": "Take the coins",
+          "nextNodeId": "a1_house",
+          "effects": [
+            "crowns +35"
+          ],
+          "result": "Thirty-five crowns, heavy in your pocket."
+        },
+        {
+          "id": "leave_tin",
+          "text": "Leave them for whoever comes back",
+          "nextNodeId": "a1_house",
+          "effects": [
+            "mercy +1"
+          ],
+          "result": "Somebody in Saltmere will need them more than you."
+        }
+      ],
+      "onEnter": [
+        "flag house_hearth"
+      ]
+    },
+    "a1_square": {
+      "id": "a1_square",
+      "title": "THE SQUARE",
+      "paragraphs": [
+        {
+          "if": "!sq_brena",
+          "text": "The living have gathered around the well: maybe forty of them, sooty and quiet. Old Brena sits on the well's lip with a slate, scratching marks. Nine dead. Seven children taken. When she sees you, she adds no mark, which is how you learn {sister} is not among the dead."
+        },
+        {
+          "if": "!sq_brena",
+          "text": "The wounded lie in a row under the net-shed roof."
+        },
+        {
+          "if": "!sq_tam",
+          "text": "Tam sits apart from everyone, both hands wrapped in wet sailcloth."
+        },
+        {
+          "if": "sq_brena",
+          "text": "The square has gone quiet. Brena is back at her slate."
+        }
+      ],
+      "choices": [
+        {
+          "id": "help",
+          "text": "Help with the wounded",
+          "nextNodeId": "a1_square_help",
+          "if": "!sq_brena"
+        },
+        {
+          "id": "ask",
+          "text": "Ask Brena what she saw",
+          "nextNodeId": "a1_square_ask",
+          "if": "!sq_brena"
+        },
+        {
+          "id": "tam",
+          "text": "Go and sit with Tam",
+          "nextNodeId": "a1_square_tam",
+          "if": "!sq_tam"
+        },
+        {
+          "id": "steal",
+          "text": "Slip into the common store while everyone is busy",
+          "nextNodeId": "a1_square",
+          "once": true,
+          "if": "sq_brena || sq_tam",
+          "check": "attr.dexterity >= 11",
+          "effects": [
+            "flag stole_from_store",
+            "flag has_food"
+          ],
+          "result": "Three days of food in a sack, and nobody saw.",
+          "failEffects": [
+            "flag stole_from_store",
+            "flag has_food",
+            "rep.fisherfolk -2"
+          ],
+          "failResult": "Brena sees you, and says nothing. Everyone else sees her see you."
+        },
+        {
+          "id": "back",
+          "text": "Go back",
+          "nextNodeId": "a1_return",
+          "if": "sq_brena || sq_tam"
+        }
+      ]
+    },
+    "a1_square_help": {
+      "id": "a1_square_help",
+      "title": "THE SQUARE",
+      "paragraphs": [
+        "Nobody has boiled water yet, so you do. By noon your hands are red to the wrist and two of the burned are sleeping instead of screaming.",
+        "Brena brings you a cup of broth and sits beside you on the step. \"There was a clerk with them,\" she says quietly. \"Grey coat. An iron-bound ledger. He read names off it, and they went to those doors.\" She looks at her slate. \"Every child they took had lived through the fever. Every one.\""
+      ],
+      "choices": [
+        {
+          "id": "well",
+          "text": "Go back to the well",
+          "nextNodeId": "a1_square"
+        }
+      ],
+      "onEnter": [
+        "flag sq_brena",
+        "rep.fisherfolk +1",
+        "sanity -5",
+        "leads +2",
+        "flag knows_fever_link",
+        "journal A clerk in a grey coat read names from an iron-bound ledger.",
+        "journal Every child taken had survived the night fever."
+      ]
+    },
+    "a1_square_ask": {
+      "id": "a1_square_ask",
+      "title": "THE SQUARE",
+      "paragraphs": [
+        "Brena doesn't look up from her slate. \"A clerk,\" she says. \"Grey coat. Iron-bound ledger. He read names.\"",
+        "When you ask what names, she rubs out a mark and makes it again, harder. \"I have nine to bury, {name}. Ask me tomorrow.\""
+      ],
+      "choices": [
+        {
+          "id": "well",
+          "text": "Leave her to it",
+          "nextNodeId": "a1_square"
+        }
+      ],
+      "onEnter": [
+        "flag sq_brena",
+        "leads +1",
+        "journal A clerk in a grey coat read names from an iron-bound ledger."
+      ]
+    },
+    "a1_square_tam": {
+      "id": "a1_square_tam",
+      "title": "THE SQUARE",
+      "paragraphs": [
+        "Tam's little brother was one of the seven. Tam doesn't look at you, only at the sea. \"{name}. They went from house to house like they knew which doors to kick.\"",
+        "\"I'm going after them. With you or without you.\""
+      ],
+      "choices": [
+        {
+          "id": "promise",
+          "text": "\"We'll bring them back. All seven.\"",
+          "nextNodeId": "a1_square_tam_reply",
+          "effects": [
+            "mercy +1",
+            "bond.tam +1",
+            "flag promised_tam"
+          ]
+        },
+        {
+          "id": "vengeance",
+          "text": "\"They'll pay for this. Every one of them.\"",
+          "nextNodeId": "a1_square_tam_reply",
+          "effects": [
+            "mercy -1",
+            "bond.tam +1",
+            "flag swore_vengeance"
+          ]
+        },
+        {
+          "id": "stay",
+          "text": "\"Stay. Your mother has already lost one child.\"",
+          "nextNodeId": "a1_square_tam_reply",
+          "effects": [
+            "bond.tam -1",
+            "flag told_tam_to_stay"
+          ]
+        }
+      ],
+      "onEnter": [
+        "flag sq_tam",
+        "bond.tam +1",
+        "flag tam_wants_to_come"
+      ]
+    },
+    "a1_square_tam_reply": {
+      "id": "a1_square_tam_reply",
+      "title": "THE SQUARE",
+      "paragraphs": [
+        {
+          "if": "promised_tam",
+          "text": "Tam looks at you then, properly, for the first time. \"All seven. I'll hold you to that.\""
+        },
+        {
+          "if": "swore_vengeance",
+          "text": "Tam's jaw sets. \"Every one,\" Tam says, and you are of one mind."
+        },
+        {
+          "if": "told_tam_to_stay",
+          "text": "Tam stares at you as if you had struck them. \"She lost two. You don't get to decide which of us she keeps.\""
+        }
+      ],
+      "choices": [
+        {
+          "id": "well",
+          "text": "Get up and leave Tam to the sea",
+          "nextNodeId": "a1_square"
+        }
+      ]
+    },
+    "a1_cove": {
+      "id": "a1_cove",
+      "title": "THE COVE",
+      "paragraphs": [
+        "The footprints go down to the waterline and stop. Four keels, maybe five.",
+        {
+          "if": "ran_at_once",
+          "text": "Far out, the last longboat's sail catches the light: a red hand painted on grey canvas, heading north."
+        },
+        "Among the rocks at the cove's mouth lies a raider his crew left behind, a fishing gaff through his thigh. Someone in Saltmere fought back. He is young, younger than you, with a grinning mouth tattooed on his wrist: Tenudaq's mark, the thieves' god. He sees your knife and lifts empty hands.",
+        "\"Please. I only rowed. I know where they're going. I'll tell you, just don't leave me for the tide.\""
+      ],
+      "choices": [
+        {
+          "id": "name",
+          "text": "\"What's your name?\"",
+          "nextNodeId": "a1_cove_name"
+        },
+        {
+          "id": "sister",
+          "text": "\"My sister was in one of those boats.\"",
+          "nextNodeId": "a1_cove_sister"
+        },
+        {
+          "id": "threat",
+          "text": "\"Give me one reason not to drown you.\"",
+          "nextNodeId": "a1_cove_threat"
+        }
+      ],
+      "onEnter": [
+        {
+          "if": "ran_at_once",
+          "do": [
+            "leads +1",
+            "journal A red hand on a grey sail, heading north."
+          ]
+        }
+      ]
+    },
+    "a1_cove_name": {
+      "id": "a1_cove_name",
+      "title": "THE COVE",
+      "paragraphs": [
+        "\"Corrin.\" He tries to smile and it goes wrong. \"I'm not a fighter. I row. A woman came out of a doorway with that gaff and I didn't even see her.\"",
+        "He has a name now, and so does whatever you do next."
+      ],
+      "choices": [
+        {
+          "id": "name",
+          "text": "\"What's your name?\"",
+          "nextNodeId": "a1_cove_name",
+          "if": "!cove_asked_name"
+        },
+        {
+          "id": "sister",
+          "text": "\"My sister was in one of those boats.\"",
+          "nextNodeId": "a1_cove_sister",
+          "if": "!cove_asked_sister"
+        },
+        {
+          "id": "threat",
+          "text": "\"Give me one reason not to drown you.\"",
+          "nextNodeId": "a1_cove_threat",
+          "if": "!cove_asked_threat"
+        },
+        {
+          "id": "where",
+          "text": "\"Where are they taking them?\"",
+          "nextNodeId": "a1_cove_where"
+        }
+      ],
+      "onEnter": [
+        "flag cove_asked_name",
+        "flag knows_rowers_name",
+        "mercy +1"
+      ]
+    },
+    "a1_cove_sister": {
+      "id": "a1_cove_sister",
+      "title": "THE COVE",
+      "paragraphs": [
+        "He goes pale under the dirt. \"The children are kept apart from the others. Nobody's allowed to touch them. The buyer's men want them whole, not a mark on them.\"",
+        "She is alive, then. For now."
+      ],
+      "choices": [
+        {
+          "id": "name",
+          "text": "\"What's your name?\"",
+          "nextNodeId": "a1_cove_name",
+          "if": "!cove_asked_name"
+        },
+        {
+          "id": "sister",
+          "text": "\"My sister was in one of those boats.\"",
+          "nextNodeId": "a1_cove_sister",
+          "if": "!cove_asked_sister"
+        },
+        {
+          "id": "threat",
+          "text": "\"Give me one reason not to drown you.\"",
+          "nextNodeId": "a1_cove_threat",
+          "if": "!cove_asked_threat"
+        },
+        {
+          "id": "where",
+          "text": "\"Where are they taking them?\"",
+          "nextNodeId": "a1_cove_where"
+        }
+      ],
+      "onEnter": [
+        "flag cove_asked_sister",
+        "sanity +5",
+        "leads +1",
+        "journal The children are kept apart. The buyer's men want them whole and unmarked."
+      ]
+    },
+    "a1_cove_threat": {
+      "id": "a1_cove_threat",
+      "title": "THE COVE",
+      "paragraphs": [
+        "\"Because I'm no Rowgan!\" It comes out of him in a rush. \"I owed money in Riverend. They bought my debt and chained me to an oar. I've been rowing for them since spring.\"",
+        "He might be lying. The tide is coming in either way."
+      ],
+      "choices": [
+        {
+          "id": "name",
+          "text": "\"What's your name?\"",
+          "nextNodeId": "a1_cove_name",
+          "if": "!cove_asked_name"
+        },
+        {
+          "id": "sister",
+          "text": "\"My sister was in one of those boats.\"",
+          "nextNodeId": "a1_cove_sister",
+          "if": "!cove_asked_sister"
+        },
+        {
+          "id": "threat",
+          "text": "\"Give me one reason not to drown you.\"",
+          "nextNodeId": "a1_cove_threat",
+          "if": "!cove_asked_threat"
+        },
+        {
+          "id": "where",
+          "text": "\"Where are they taking them?\"",
+          "nextNodeId": "a1_cove_where"
+        }
+      ],
+      "onEnter": [
+        "flag cove_asked_threat",
+        "flag rower_pressganged",
+        "mercy -1"
+      ]
+    },
+    "a1_cove_where": {
+      "id": "a1_cove_where",
+      "title": "THE COVE",
+      "paragraphs": [
+        "He looks at the water creeping up the rocks, then at you. \"The old salt works. Three days up the coast, past the river mouth. That's where the buyer's men collect.\"",
+        "\"That's all I know. I swear it on Tenudaq's teeth.\""
+      ],
+      "choices": [
+        {
+          "id": "bind",
+          "text": "Bind his leg",
+          "nextNodeId": "a1_cove_after",
+          "effects": [
+            "mercy +2",
+            "flag bound_rower"
+          ],
+          "result": "You tie off the wound with a strip of your shirt. He weeps a little."
+        },
+        {
+          "id": "swear",
+          "text": "Knife to his throat: \"Swear it again.\"",
+          "nextNodeId": "a1_cove_after",
+          "effects": [
+            "mercy -1",
+            "flag threatened_rower"
+          ],
+          "result": "He swears it again, and again, until you take the knife away."
+        },
+        {
+          "id": "kill",
+          "text": "He has told you everything. Kill him.",
+          "nextNodeId": "a1_return",
+          "effects": [
+            "mercy -3",
+            "sanity -10",
+            "flag killed_rower"
+          ],
+          "result": "Afterwards you wash your knife in the sea for a long time."
+        }
+      ],
+      "onEnter": [
+        "leads +2",
+        "journal The old salt works, three days up the coast: where the buyer's men collect."
+      ]
+    },
+    "a1_cove_after": {
+      "id": "a1_cove_after",
+      "title": "THE COVE",
+      "paragraphs": [
+        "The water is at the rocks' feet now. He can't walk, and he knows it.",
+        {
+          "if": "!bound_rower",
+          "text": "\"Please,\" he says again, softer."
+        },
+        {
+          "if": "bound_rower",
+          "text": "\"They'll come back for me,\" he says. \"Tonight, maybe. If they find me alive, I'll tell them you spared me.\""
+        }
+      ],
+      "choices": [
+        {
+          "id": "leave",
+          "text": "Leave him on the rocks",
+          "nextNodeId": "a1_return",
+          "effects": [
+            {
+              "if": "bound_rower",
+              "do": [
+                "flag spared_rower"
+              ]
+            },
+            {
+              "if": "!bound_rower",
+              "do": [
+                "mercy -2",
+                "flag left_rower_to_tide"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "drag",
+          "text": "Drag him to the square for the village to judge",
+          "nextNodeId": "a1_return",
+          "needs": "attr.strength >= 12",
+          "needsLabel": "Strength 12",
+          "effects": [
+            "rep.fisherfolk +1",
+            "flag rower_to_village"
+          ],
+          "result": "Brena looks at him for a long time. The village hangs him at noon."
+        }
+      ]
+    },
+    "a1_dusk": {
+      "id": "a1_dusk",
+      "title": "THE COVE AT DUSK",
+      "paragraphs": [
+        "At dusk you go back to the cove, and a longboat is already grinding onto the sand. Two raiders climb out: a broad man with a falchion, and a woman with a red hand tattooed across her throat. They have come back for their own.",
+        {
+          "if": "spared_rower && knows_rowers_name",
+          "text": "Corrin is sitting up against the rocks where you left him, leg bound. \"Leave it!\" he shouts to them. \"This one let me live.\" The woman looks at you a long time."
+        },
+        {
+          "if": "spared_rower && !knows_rowers_name",
+          "text": "The rower is sitting up against the rocks where you left him, leg bound. \"Leave it!\" he shouts to them. \"This one let me live.\" The woman looks at you a long time."
+        },
+        {
+          "if": "!spared_rower",
+          "text": "They find their friend dead, or gone, and draw their blades."
+        }
+      ],
+      "choices": [
+        {
+          "id": "let_go",
+          "text": "Let them take him and go",
+          "nextNodeId": "a1_pyre",
+          "if": "spared_rower",
+          "effects": [
+            "mercy +1",
+            "leads +1",
+            "flag rowgan_debt",
+            "journal At the salt works, ask for the clerk, not the captain."
+          ],
+          "result": "The woman nods once. \"You'll want the salt works. Ask for the clerk, not the captain.\""
+        },
+        {
+          "id": "ask_woman",
+          "text": "Ask the woman about the children",
+          "nextNodeId": "a1_pyre",
+          "if": "spared_rower",
+          "needs": "attr.insight >= 11",
+          "needsLabel": "Insight 11",
+          "effects": [
+            "leads +1",
+            "flag knows_buyers_sign",
+            "journal The buyer's sign: a measuring rod crossed with a sickle."
+          ],
+          "result": "\"They're not for us. We only carry.\" She draws the buyer's sign in the sand: a measuring rod crossed with a sickle."
+        },
+        {
+          "id": "attack",
+          "text": "Attack them on the rocks",
+          "effects": [
+            {
+              "if": "spared_rower",
+              "do": [
+                "mercy -2",
+                "flag betrayed_corrin"
+              ]
+            }
+          ],
+          "triggerEvent": "combat_a1_cove",
+          "victoryNodeId": "a1_dusk_won",
+          "defeatNodeId": "a1_dusk_lost"
+        },
+        {
+          "id": "village",
+          "text": "Shout for the village, then fight",
+          "needs": "bond.tam >= 1",
+          "needsLabel": "Tam's trust",
+          "triggerEvent": "combat_a1_cove_village",
+          "victoryNodeId": "a1_dusk_won",
+          "defeatNodeId": "a1_dusk_lost"
+        },
+        {
+          "id": "hide",
+          "text": "Hide in the rocks and let them go",
+          "nextNodeId": "a1_pyre",
+          "effects": [
+            "sanity -5",
+            "flag last_boat_burned"
+          ],
+          "result": "On their way out they fire the last boat on the beach. You watch it burn."
+        }
+      ]
+    },
+    "a1_dusk_won": {
+      "id": "a1_dusk_won",
+      "title": "THE COVE AT DUSK",
+      "paragraphs": [
+        "The broad man's falchion lies in the surf, notched and rusted but heavier than anything you have held. Their longboat sits drawn up on the sand, a red hand on its folded sail."
+      ],
+      "choices": [
+        {
+          "id": "up",
+          "text": "Walk back up to the village",
+          "nextNodeId": "a1_pyre"
+        }
+      ],
+      "onEnter": [
+        "item rusted falchion",
+        "flag has_raider_boat"
+      ]
+    },
+    "a1_dusk_lost": {
+      "id": "a1_dusk_lost",
+      "title": "THE SQUARE",
+      "paragraphs": [
+        "You wake by the well with Brena binding your head. The raiders are gone, and so is their boat.",
+        "\"Brave,\" she says, tying the knot too tight. \"Brave is how your father died.\""
+      ],
+      "choices": [
+        {
+          "id": "up",
+          "text": "Get up",
+          "nextNodeId": "a1_pyre"
+        }
+      ],
+      "onEnter": [
+        "flag lost_at_cove"
+      ]
+    },
+    "a1_pyre": {
+      "id": "a1_pyre",
+      "title": "THE BURNING OF THE DEAD",
+      "paragraphs": [
+        "Saltmere burns its dead on the tideline, so the sea can take what is left. Nine bodies lie on the driftwood, wrapped in sailcloth. Garrick is at the end of the row, his cooper's mallet on his chest.",
+        "Brena hands you the torch. \"Your mother said the words at the last burning. There's no one else of your blood to say them now.\" The whole village is watching you.",
+        {
+          "if": "has_iron_pin",
+          "text": "As the pyre catches, the pin at your throat turns hot, and for a moment the flames stand up in the shape of a crown."
+        }
+      ],
+      "choices": [
+        {
+          "id": "vitruv",
+          "text": "Say the temple words: \"Vitruv, measure them kindly.\"",
+          "nextNodeId": "a1_counsel",
+          "effects": [
+            "rep.temple +1",
+            "flag prayed_vitruv"
+          ],
+          "result": "The proper words. The village is comforted."
+        },
+        {
+          "id": "lavrith",
+          "text": "Say the old words, to Lavrith of the pines: \"Undo their pain.\"",
+          "nextNodeId": "a1_counsel",
+          "effects": [
+            "sanity +5",
+            "flag old_ways"
+          ],
+          "result": "Only the oldest remember those words. Brena weeps."
+        },
+        {
+          "id": "vow",
+          "text": "Say: \"I will bring back the ones they took.\"",
+          "nextNodeId": "a1_counsel",
+          "effects": [
+            "rep.fisherfolk +1",
+            "flag public_vow"
+          ],
+          "result": "A vow, in front of everyone. Nobody here will forget it."
+        },
+        {
+          "id": "curse",
+          "text": "Say: \"What god let this happen?\" and throw the torch",
+          "nextNodeId": "a1_counsel",
+          "effects": [
+            "mercy -1",
+            "sanity +5",
+            "flag cursed_gods"
+          ],
+          "result": "The anger holds you up. Some of the village turn away."
+        },
+        {
+          "id": "silent",
+          "text": "Light the pyre and say nothing",
+          "nextNodeId": "a1_counsel",
+          "effects": [
+            "sanity -5"
+          ],
+          "result": "Brena says the words for you."
+        }
+      ]
+    },
+    "a1_counsel": {
+      "id": "a1_counsel",
+      "title": "BRENA'S COUNSEL",
+      "paragraphs": [
+        "The village meets in the net-shed because it is the only roof left whole. A rider from the reeve came through at dawn: every village from here to the river mouth was hit the same week, and the crown's riders are three days behind the raiders and losing ground. The army is raising men at a recruitment post up the coast, the rider said, for anyone who can hold a spear.",
+        "Nobody here can follow. The nets are ash, the boats are gone, and winter is coming. Brena turns to you. \"You've been to the cove and the hills and your mother's house, {name}. What do you know, and what will you do?\""
+      ],
+      "choices": [
+        {
+          "id": "all",
+          "text": "Tell them everything: the list, the fever children, the salt works",
+          "nextNodeId": "a1_leaving",
+          "needs": "leads >= 3",
+          "needsLabel": "3 leads",
+          "effects": [
+            "rep.fisherfolk +1",
+            "flag brena_contact",
+            "journal Brena's cousin in the next village north owes her a life."
+          ],
+          "result": "The room goes cold. Afterwards Brena gives you a name: her cousin in the next village north, who owes her a life."
+        },
+        {
+          "id": "only",
+          "text": "Tell them only that you are going after her",
+          "nextNodeId": "a1_leaving",
+          "effects": [
+            "flag kept_secrets"
+          ],
+          "result": "Brena studies you, but asks nothing more."
+        },
+        {
+          "id": "arm",
+          "text": "Say: \"Arm yourselves and come with me.\"",
+          "nextNodeId": "a1_leaving",
+          "effects": [
+            "rep.fisherfolk -1",
+            {
+              "if": "bond.tam >= 2",
+              "do": [
+                "flag tam_stood_up"
+              ]
+            }
+          ],
+          "result": "Nobody moves. They have nothing left to fight with."
+        },
+        {
+          "id": "skiff",
+          "text": "Ask Brena for the old skiff and food for the road",
+          "nextNodeId": "a1_leaving",
+          "needs": "rep.fisherfolk >= 1",
+          "needsLabel": "Fisherfolk: Known",
+          "effects": [
+            "flag blessing_granted",
+            "flag has_food"
+          ],
+          "result": "She gives them. The village's blessing goes with you."
+        },
+        {
+          "id": "post",
+          "text": "Ask the rider's way to the recruitment post",
+          "nextNodeId": "a1_counsel",
+          "once": true,
+          "effects": [
+            "flag knows_recruitment_post",
+            "journal The army is raising men at a recruitment post up the coast."
+          ],
+          "result": "Two days up the coast road, where it crosses the river."
+        }
+      ]
+    },
+    "a1_leaving": {
+      "id": "a1_leaving",
+      "title": "LEAVING SALTMERE",
+      "paragraphs": [
+        "You pack what you have: your knife, the boat hook, whatever you took from the house. The tide turns at dusk. Behind you the village is already rebuilding the first net-shed, slow and quiet.",
+        {
+          "if": "tam_wants_to_come && !tam_decided",
+          "text": "Tam is waiting at the end of the burnt jetty with a bundle and a gutting knife, and says nothing, only waits to hear what you'll say."
+        },
+        {
+          "if": "!(tam_wants_to_come && !tam_decided)",
+          "text": "It is time to go."
+        }
+      ],
+      "choices": [
+        {
+          "id": "get_in",
+          "text": "Say: \"Get in.\"",
+          "nextNodeId": "a1_leaving",
+          "if": "tam_wants_to_come && !tam_decided",
+          "effects": [
+            "flag tam_decided",
+            "flag tam_joined",
+            "bond.tam +1"
+          ],
+          "result": "Tam climbs in without a word."
+        },
+        {
+          "id": "go_home",
+          "text": "Say: \"Go home, Tam.\"",
+          "nextNodeId": "a1_leaving",
+          "if": "tam_wants_to_come && !tam_decided",
+          "effects": [
+            "flag tam_decided",
+            "bond.tam -1",
+            {
+              "if": "promised_tam",
+              "do": [
+                "bond.tam -1",
+                "flag broke_promise_tam"
+              ]
+            },
+            {
+              "if": "bond.tam >= 3",
+              "do": [
+                "flag tam_follows"
+              ]
+            }
+          ],
+          "result": "Tam turns and walks back up the beach without looking round."
+        },
+        {
+          "id": "blessing",
+          "text": "Take the skiff Brena gave you, with the village on the shore",
+          "nextNodeId": "a1_first_night",
+          "if": "!(tam_wants_to_come && !tam_decided)",
+          "needs": "blessing_granted",
+          "needsLabel": "Brena's blessing",
+          "effects": [
+            "rep.fisherfolk +1",
+            "flag left_with_blessing",
+            "flag left_by_boat"
+          ],
+          "result": "The village sings you out, the old rowing song, until you are past the point."
+        },
+        {
+          "id": "raider_boat",
+          "text": "Take the raiders' longboat from the cove",
+          "nextNodeId": "a1_first_night",
+          "if": "!(tam_wants_to_come && !tam_decided)",
+          "needs": "has_raider_boat",
+          "needsLabel": "The raiders' boat",
+          "effects": [
+            "flag sails_red_hand",
+            "flag left_by_boat"
+          ],
+          "result": "Fast and seaworthy, with a red hand on the sail. Up the coast, people will take you for a Rowgan."
+        },
+        {
+          "id": "steal_skiff",
+          "text": "Steal the old skiff in the night",
+          "nextNodeId": "a1_first_night",
+          "if": "!(tam_wants_to_come && !tam_decided) && !blessing_granted && !last_boat_burned",
+          "effects": [
+            "rep.fisherfolk -2",
+            "mercy -1",
+            "flag stole_skiff",
+            "flag left_by_boat"
+          ],
+          "result": "It was the last boat they had."
+        },
+        {
+          "id": "walk",
+          "text": "Walk the coast road alone",
+          "nextNodeId": "a1_first_night",
+          "if": "!(tam_wants_to_come && !tam_decided)",
+          "effects": [
+            "flag left_on_foot"
+          ],
+          "result": "On foot, the raiders gain a day on you."
+        }
+      ]
+    },
+    "a1_first_night": {
+      "id": "a1_first_night",
+      "title": "THE FIRST NIGHT OUT",
+      "paragraphs": [
+        {
+          "if": "left_by_boat",
+          "text": "You beach in a sandy cove a few hours north and make no fire. Saltmere is a single orange point behind you, then nothing."
+        },
+        {
+          "if": "!left_by_boat",
+          "text": "You stop where the coast road climbs into the first pines, and look back once. Saltmere is a single orange point, then nothing."
+        },
+        {
+          "if": "tam_joined",
+          "text": "Tam falls asleep sitting up, gutting knife still in hand."
+        },
+        {
+          "if": "has_iron_pin",
+          "text": "You dream of {sister} in a room with iron walls. She says your name, very clearly, and you wake with the pin hot against your skin."
+        },
+        "Before you sleep, you say something aloud, to the dark or to Tam. You will remember it later."
+      ],
+      "choices": [
+        {
+          "id": "cost",
+          "text": "Say: \"I'll find her, whatever it costs.\"",
+          "nextNodeId": "a1_end",
+          "effects": [
+            "mercy -1",
+            "flag whatever_it_costs"
+          ]
+        },
+        {
+          "id": "self",
+          "text": "Say: \"I'll find her, and she'll still know who I am.\"",
+          "nextNodeId": "a1_end",
+          "effects": [
+            "mercy +1",
+            "flag stay_yourself"
+          ]
+        },
+        {
+          "id": "brother",
+          "text": "Ask Tam about their brother",
+          "nextNodeId": "a1_end",
+          "if": "tam_joined",
+          "effects": [
+            "bond.tam +1",
+            "sanity +5"
+          ],
+          "result": "Tam talks until nearly dawn."
+        },
+        {
+          "id": "sleep",
+          "text": "Say nothing and sleep",
+          "nextNodeId": "a1_end"
+        }
+      ]
+    },
+    "a1_end": {
+      "id": "a1_end",
+      "title": "END OF ACT I",
+      "paragraphs": [
+        "The tide goes out and comes back. Somewhere north, a red sail is a day ahead of you.",
+        "Act I ends here. Act II, the road, is still being written."
+      ],
+      "choices": []
+    }
+  }
+}

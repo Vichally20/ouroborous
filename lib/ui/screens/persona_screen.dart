@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
-import '../../models/character_class.dart';
+import '../../models/combat_stats.dart';
 import '../../models/item.dart';
 import '../../states/player_state.dart';
 
@@ -18,25 +18,14 @@ class PersonaScreen extends StatelessWidget {
       final loadout = playerState.loadout.value;
       final currentClass = playerState.characterClass.value;
 
-      final damageVal = (loadout.mainHand?.statBonus ?? 14) * 3 + 12;
-      final armourVal = (loadout.chest?.statBonus ?? 30) +
-          (loadout.head?.statBonus ?? 12) +
-          (loadout.secondaryHand?.statBonus ?? 18) +
-          (loadout.leg?.statBonus ?? 15);
-      final perkStr = loadout.chest != null ? '+15% Bleed Resist' : '+10% Swing Speed';
+      // Same numbers combat uses (attributes + equipment + talents).
+      final stats = HeroCombatStats.of(activeHero);
+      final (hitDmg, critDmg) = stats.strikeDamage();
+      final perkStr = stats.weaponPerks.isEmpty
+          ? 'None'
+          : stats.weaponPerks.map((p) => p.replaceAll('_', ' ')).join(', ');
 
-      String classImageAsset;
-      switch (currentClass.type) {
-        case PersonalityClassType.warrior:
-          classImageAsset = 'assets/images/class_warrior.jpg';
-          break;
-        case PersonalityClassType.sorcerer:
-          classImageAsset = 'assets/images/class_sorcerer.jpg';
-          break;
-        case PersonalityClassType.assassin:
-          classImageAsset = 'assets/images/class_assassin.jpg';
-          break;
-      }
+      final classImageAsset = activeHero.portrait;
 
       return SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -95,7 +84,7 @@ class PersonaScreen extends StatelessWidget {
                     opacity: 0.35,
                     child: Image.asset(
                       classImageAsset,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       width: double.infinity,
                       height: 380,
                     ),
@@ -103,16 +92,16 @@ class PersonaScreen extends StatelessWidget {
                   Column(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildSlotTile('HEAD', loadout.head, Icons.sports_martial_arts),
+                      _buildSlotTile(context, playerState, 'HEAD', AnatomicalSlot.head, loadout.head, Icons.sports_martial_arts),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _buildSlotTile('SECONDARY HAND', loadout.secondaryHand, Icons.shield_outlined),
-                          _buildSlotTile('CHEST', loadout.chest, Icons.health_and_safety_outlined),
-                          _buildSlotTile('MAIN HAND', loadout.mainHand, Icons.colorize_outlined),
+                          _buildSlotTile(context, playerState, 'SECONDARY HAND', AnatomicalSlot.secondaryHand, loadout.secondaryHand, Icons.shield_outlined),
+                          _buildSlotTile(context, playerState, 'CHEST', AnatomicalSlot.chest, loadout.chest, Icons.health_and_safety_outlined),
+                          _buildSlotTile(context, playerState, 'MAIN HAND', AnatomicalSlot.mainHand, loadout.mainHand, Icons.colorize_outlined),
                         ],
                       ),
-                      _buildSlotTile('LEG', loadout.leg, Icons.directions_walk),
+                      _buildSlotTile(context, playerState, 'LEG', AnatomicalSlot.leg, loadout.leg, Icons.directions_walk),
                     ],
                   ),
                 ],
@@ -144,9 +133,11 @@ class PersonaScreen extends StatelessWidget {
             const Divider(color: Color(0xFF2A2218), thickness: 1),
             const SizedBox(height: 8),
 
-            _buildLoadoutRow('Damage', '$damageVal - ${damageVal + 18}'),
-            _buildLoadoutRow('Armour', '$armourVal'),
-            _buildLoadoutRow('Perks from Equipment', perkStr, valColor: const Color(0xFFC89B5D)),
+            _buildLoadoutRow('Strike Damage', '$hitDmg (crit $critDmg)'),
+            _buildLoadoutRow('Armour', '${stats.defense}'),
+            _buildLoadoutRow('Strength', '${stats.strength}'),
+            _buildLoadoutRow('Speed', '${stats.speed}'),
+            _buildLoadoutRow('Weapon Perks', perkStr, valColor: const Color(0xFFC89B5D)),
             const SizedBox(height: 16),
             
             // Hero Description Callout Card
@@ -183,8 +174,17 @@ class PersonaScreen extends StatelessWidget {
     });
   }
 
-  Widget _buildSlotTile(String name, ArtifactItem? item, IconData icon) {
-    return Stack(
+  Widget _buildSlotTile(
+    BuildContext context,
+    PlayerState playerState,
+    String name,
+    AnatomicalSlot slot,
+    ArtifactItem? item,
+    IconData icon,
+  ) {
+    return GestureDetector(
+      onTap: item == null ? null : () => _confirmUnequip(context, playerState, slot, item),
+      child: Stack(
       alignment: Alignment.bottomRight,
       children: [
         Container(
@@ -210,7 +210,7 @@ class PersonaScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2.0),
                   child: Text(
-                    item.name,
+                    item.displayName,
                     style: VitruvianTypography.monospaceData(fontSize: 8, color: VitruvianColors.agedBone),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -232,6 +232,45 @@ class PersonaScreen extends StatelessWidget {
             ),
           ),
       ],
+    ),
+    );
+  }
+
+  void _confirmUnequip(BuildContext context, PlayerState playerState, AnatomicalSlot slot, ArtifactItem item) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF151310),
+      shape: const RoundedRectangleBorder(side: BorderSide(color: Color(0xFF3A2C20))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(item.displayName.toUpperCase(),
+                  style: VitruvianTypography.serifTitle(fontSize: 18, color: const Color(0xFFE0C8B0))),
+              const SizedBox(height: 6),
+              Text(item.description,
+                  style: VitruvianTypography.serifBody(fontSize: 14, color: VitruvianColors.agedBone)),
+              const SizedBox(height: 20),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFC89B5D),
+                  side: const BorderSide(color: Color(0xFFC89B5D)),
+                  shape: const RoundedRectangleBorder(),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  playerState.unequipArtifact(slot);
+                },
+                child: Text('UNEQUIP TO INVENTORY', style: VitruvianTypography.serifTitle(fontSize: 14)),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

@@ -3,8 +3,11 @@ import 'package:get/get.dart';
 import 'core/constants/colors.dart';
 import 'core/constants/typography.dart';
 import 'core/theme/manuscript_theme.dart';
+import 'states/combat_state.dart';
 import 'states/game_controller.dart';
 import 'states/navigation_state.dart';
+import 'states/save_state.dart';
+import 'ui/menu/main_menu_screen.dart';
 import 'ui/screens/game_hub_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/screens/you_hub_screen.dart';
@@ -20,19 +23,18 @@ class VitruvianShadowApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gameController = Get.put(GameController());
+    Get.put(GameController());
+    final save = Get.put(SaveState());
 
     return GetMaterialApp(
       title: 'Vitruvian Shadow RPG',
       debugShowCheckedModeBanner: false,
       theme: ManuscriptTheme.darkTheme,
-      home: Obx(() {
-        if (gameController.playerState.hasCreatedCharacter.value) {
-          return const ManuscriptMainScaffold();
-        } else {
-          return const IntroScreen();
-        }
-      }),
+      home: Obx(() => switch (save.screen.value) {
+            AppScreen.menu => const MainMenuScreen(),
+            AppScreen.onboarding => const IntroScreen(),
+            AppScreen.game => const ManuscriptMainScaffold(),
+          }),
     );
   }
 }
@@ -47,7 +49,6 @@ class ManuscriptMainScaffold extends StatelessWidget {
 
     return Obx(() {
       final activeTab = gameController.activeHubTab.value;
-      final currentNode = navState.currentNode;
 
       Widget currentScreen;
       String appBarTitle = 'VITRUVIAN SHADOW';
@@ -68,7 +69,7 @@ class ManuscriptMainScaffold extends StatelessWidget {
           break;
         case MainHubTab.game:
           currentScreen = const GameHubScreen();
-          appBarTitle = navState.isShowingMap.value ? currentNode.title : 'VITRUVIAN SHADOW';
+          appBarTitle = navState.isShowingMap.value ? navState.mapTitle : 'VITRUVIAN SHADOW';
           actions = [
             IconButton(
               icon: Icon(
@@ -84,6 +85,12 @@ class ManuscriptMainScaffold extends StatelessWidget {
           currentScreen = const SettingsScreen();
           appBarTitle = 'VITRUVIAN SHADOW';
           break;
+      }
+
+      // Combat owns the whole screen: no app bar or bottom nav while fighting.
+      final inCombat = activeTab == MainHubTab.game && Get.find<CombatController>().inCombat.value;
+      if (inCombat) {
+        return Scaffold(backgroundColor: VitruvianColors.voidBlack, body: currentScreen);
       }
 
       return Scaffold(

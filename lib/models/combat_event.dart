@@ -4,6 +4,9 @@ class CombatEvent {
   final String skillName;
   final String weaponName;
   final String targetId;
+
+  /// 'player', an ally id or an enemy id: who swung. Drives the lean-in animation.
+  final String attackerId;
   final List<int> damageHits; // e.g. [15] single, [8, 7] double slash
   final List<String> perks; // e.g. ["+4 Bleed"] — ready for perk system
   final bool isCritical;
@@ -13,6 +16,7 @@ class CombatEvent {
     required this.skillName,
     required this.weaponName,
     required this.targetId,
+    this.attackerId = '',
     required this.damageHits,
     this.perks = const [],
     this.isCritical = false,

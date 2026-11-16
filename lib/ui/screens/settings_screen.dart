@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../states/save_state.dart';
 import '../../states/settings_state.dart';
 import '../widgets/etched_container.dart';
 import '../widgets/manuscript_controls.dart';
+import '../widgets/toast.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -146,10 +148,10 @@ class SettingsScreen extends StatelessWidget {
                 tickMarkShape: SliderTickMarkShape.noTickMark,
               ),
               child: Slider(
-                value: settingsState.attackDelay.value,
+                value: settingsState.attackDelay.value.clamp(0.0, 2.0),
                 min: 0.0,
-                max: 4.0,
-                divisions: 8,
+                max: 2.0,
+                divisions: 40,
                 onChanged: settingsState.setAttackDelay,
               ),
             ),
@@ -180,6 +182,34 @@ class SettingsScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 36),
+
+            // SAVE / MAIN MENU (only while a game is running)
+            if (Get.find<SaveState>().screen.value == AppScreen.game) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: _systemButton(
+                      label: 'SAVE GAME',
+                      icon: Icons.save_outlined,
+                      onTap: () async {
+                        final save = Get.find<SaveState>();
+                        final ok = await save.saveNow();
+                        showToast(ok ? 'CHRONICLE SAVED' : 'NOT SAVED', ok ? 'Written to slot ${(save.activeSlot.value ?? 0) + 1}.' : 'You cannot save in the middle of a battle.', tone: ok ? ToastTone.success : ToastTone.danger);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _systemButton(
+                      label: 'MAIN MENU',
+                      icon: Icons.home_outlined,
+                      onTap: () => Get.find<SaveState>().returnToMenu(),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // WIPE SAVE DATA BUTTON
             InkWell(
@@ -227,6 +257,23 @@ class SettingsScreen extends StatelessWidget {
     });
   }
 
+  Widget _systemButton({required String label, required IconData icon, required VoidCallback onTap}) => InkWell(
+        onTap: onTap,
+        child: EtchedContainer(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          borderColor: VitruvianColors.sepiaUmber,
+          backgroundColor: const Color(0xFF14110D),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: VitruvianColors.goldLeaf),
+              const SizedBox(width: 8),
+              Text(label, style: VitruvianTypography.serifBody(fontSize: 15, color: VitruvianColors.agedBone)),
+            ],
+          ),
+        ),
+      );
+
   Widget _buildSectionHeader(String title) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,7 +301,7 @@ class SettingsScreen extends StatelessWidget {
           side: BorderSide(color: VitruvianColors.rustBlood),
         ),
         title: Text('CLINICAL PURGE', style: VitruvianTypography.serifTitle(color: VitruvianColors.rustBlood)),
-        content: Text('Are you certain you wish to purge all recorded manuscript progress? This cannot be undone.',
+        content: Text('This deletes every save slot and resets your settings. It cannot be undone.',
             style: VitruvianTypography.serifBody()),
         actions: [
           TextButton(
@@ -262,9 +309,10 @@ class SettingsScreen extends StatelessWidget {
             child: Text('ABORT', style: VitruvianTypography.monospaceData()),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               settingsState.wipeSaveData();
               Navigator.pop(context);
+              await Get.find<SaveState>().wipeAll();
             },
             child: Text('PURGE', style: VitruvianTypography.monospaceData(color: VitruvianColors.rustBlood)),
           ),

@@ -1,37 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../models/hero_character.dart';
+import '../../models/talent_node.dart';
+import '../../states/player_state.dart';
 
-class NodeBonus {
-  final String label;
-  final String value;
-  const NodeBonus(this.label, this.value);
-}
+enum _NodeState { owned, available, locked }
 
-class TalentNodeItem {
-  final String id;
-  final String title;
-  final String rank;
-  final String lore;
-  final List<NodeBonus> bonuses;
-  final Offset pos;
-  final List<String> parentIds;
-  final bool isActive;
-  final IconData icon;
-
-  const TalentNodeItem({
-    required this.id,
-    required this.title,
-    required this.rank,
-    required this.lore,
-    required this.bonuses,
-    required this.pos,
-    this.parentIds = const [],
-    this.isActive = false,
-    required this.icon,
-  });
-}
-
+/// The talent constellation for the active hero.
+///
+/// Rules (see [TalentTree] and [PlayerState]):
+/// - Every hero starts with only the root (tier I).
+/// - Each level gained after the first gives one point.
+/// - A node can be taken only once a node above it is owned, and owned nodes are
+///   permanent, so progress flows one way: downward from the root.
 class TalentsScreen extends StatefulWidget {
   const TalentsScreen({super.key});
 
@@ -40,414 +23,387 @@ class TalentsScreen extends StatefulWidget {
 }
 
 class _TalentsScreenState extends State<TalentsScreen> {
-  late final List<TalentNodeItem> constellation;
-  TalentNodeItem? selectedNode;
+  static const _owned = VitruvianColors.goldLeaf;
+  static const _available = Color(0xFFC89B5D);
+  static const _locked = Color(0xFF3A3228);
 
-  @override
-  void initState() {
-    super.initState();
-    constellation = [
-      // TIER 1: The Root
-      const TalentNodeItem(
-        id: 'root',
-        title: 'Iron Fundamentals',
-        rank: 'TIER I : ROOT',
-        lore: 'Unlocks Heavy Armor and standard One-Handed Weapons/Shields.',
-        bonuses: [
-          NodeBonus('Base Strength', '+10%'),
-          NodeBonus('Heavy Armor & Shields', 'UNLOCKED'),
-        ],
-        pos: Offset(170, 45),
-        isActive: true,
-        icon: Icons.shield,
-      ),
+  String? selectedId;
 
-      // TIER 2: The Core Branches (1 branches out to 3)
-      const TalentNodeItem(
-        id: 'branchA',
-        title: 'Juggernaut',
-        rank: 'TIER II : BRANCH A',
-        lore: 'An immovable bulwark of martial iron.',
-        bonuses: [
-          NodeBonus('Physical Resistance', '+15%'),
-          NodeBonus('Movement Speed', '-5%'),
-        ],
-        parentIds: ['root'],
-        pos: Offset(55, 145),
-        isActive: true,
-        icon: Icons.security,
-      ),
-      const TalentNodeItem(
-        id: 'branchB',
-        title: 'Berserker',
-        rank: 'TIER II : BRANCH B',
-        lore: 'Unrelenting fury born of sacrificial bloodshed.',
-        bonuses: [
-          NodeBonus('Attack Damage', '+15%'),
-          NodeBonus('Damage Taken', '+5%'),
-        ],
-        parentIds: ['root'],
-        pos: Offset(170, 145),
-        isActive: true,
-        icon: Icons.local_fire_department,
-      ),
-      const TalentNodeItem(
-        id: 'branchC',
-        title: 'Duelist',
-        rank: 'TIER II : BRANCH C',
-        lore: 'Exclusive Perk: Only class capable of wielding Two-Handed Weapons, dealing Double (x2) Damage per strike.',
-        bonuses: [
-          NodeBonus('Critical Hit Chance', '+10%'),
-          NodeBonus('Evasion Rating', '+10%'),
-          NodeBonus('Two-Handed Mastery', 'x2 Dmg'),
-        ],
-        parentIds: ['root'],
-        pos: Offset(285, 145),
-        isActive: true,
-        icon: Icons.sports_martial_arts,
-      ),
-
-      // TIER 3: The Intersections & Edges
-      const TalentNodeItem(
-        id: 'nodeA1',
-        title: 'Shield Wall',
-        rank: 'TIER III : NODE A1',
-        lore: 'Perk: Blocks restore physical stamina.',
-        bonuses: [
-          NodeBonus('Block Chance', '+20%'),
-          NodeBonus('Stamina on Block', 'ACTIVE'),
-        ],
-        parentIds: ['branchA'],
-        pos: Offset(35, 255),
-        isActive: true,
-        icon: Icons.shield_outlined,
-      ),
-      const TalentNodeItem(
-        id: 'nodeA2',
-        title: 'Vanguard\'s Retribution',
-        rank: 'TIER III : NODE A2',
-        lore: 'Perk: Blocking triggers a devastating, unblockable sweeping counterattack.',
-        bonuses: [
-          NodeBonus('Counterattack Sweep', 'UNBLOCKABLE'),
-          NodeBonus('Retribution Force', 'ACTIVE'),
-        ],
-        parentIds: ['branchA', 'branchB'], // Intersects Branch A + Branch B
-        pos: Offset(120, 255),
-        isActive: true,
-        icon: Icons.hardware,
-      ),
-      const TalentNodeItem(
-        id: 'nodeC1',
-        title: 'Flurry of Death',
-        rank: 'TIER III : NODE C1',
-        lore: 'Perk: Critical hits trigger rapid strikes instantly applying Bleed +3.',
-        bonuses: [
-          NodeBonus('Bleed Application', '+3 Stacks'),
-          NodeBonus('Critical Rapid Strike', 'ACTIVE'),
-        ],
-        parentIds: ['branchB', 'branchC'], // Intersects Branch B + Branch C
-        pos: Offset(220, 255),
-        isActive: false,
-        icon: Icons.storm,
-      ),
-      const TalentNodeItem(
-        id: 'nodeC2',
-        title: 'Expose Weakness',
-        rank: 'TIER III : NODE C2',
-        lore: 'Perk: Attacks pierce directly through armor plating.',
-        bonuses: [
-          NodeBonus('Physical Armor Ignore', '25%'),
-          NodeBonus('Armor Penetration', 'ACTIVE'),
-        ],
-        parentIds: ['branchC'],
-        pos: Offset(305, 255),
-        isActive: false,
-        icon: Icons.gps_fixed,
-      ),
-
-      // TIER 4: The Capstone
-      const TalentNodeItem(
-        id: 'capstone',
-        title: 'Execute',
-        rank: 'TIER IV : CAPSTONE',
-        lore: 'Perk: Deliver a final blow to bleeding/countered foes dealing x3 Dmg.\nSynergy: Duelist Two-Handed (x2) + Execute (x3) creates an absolute nuke of an attack.',
-        bonuses: [
-          NodeBonus('Execute Final Blow', 'x3.0 Dmg'),
-          NodeBonus('2H Nuke Synergy', 'x6.0 TOTAL'),
-        ],
-        parentIds: ['nodeA2', 'nodeC1'], // Intersects Node A2 + Node C1
-        pos: Offset(170, 365),
-        isActive: false,
-        icon: Icons.auto_awesome,
-      ),
-    ];
-
-    // Default select Execute capstone to showcase the synergy
-    selectedNode = constellation[8];
+  _NodeState _stateOf(TalentTree tree, TalentNode node, HeroCharacter hero) {
+    if (hero.unlockedTalents.contains(node.id)) return _NodeState.owned;
+    if (tree.isReachable(node.id, hero.unlockedTalents)) return _NodeState.available;
+    return _NodeState.locked;
   }
 
   @override
   Widget build(BuildContext context) {
-    const activeColor = Color(0xFFC8B458); // Highlighted golden/green
+    final playerState = Get.find<PlayerState>();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // HEADER TITLE
-          Text(
-            'TALENT GROWTH',
-            style: VitruvianTypography.serifTitle(
-              fontSize: 18,
-              color: VitruvianColors.agedBone,
-            ).copyWith(letterSpacing: 2.0),
-          ),
-          const SizedBox(height: 12),
+    return Obx(() {
+      final hero = playerState.heroes[playerState.activeHeroIndex.value];
+      final tree = hero.talentTree;
+      final level = playerState.level.value;
 
-          // TALENT TREE CONTAINER
-          Container(
-            height: 430,
-            clipBehavior: Clip.hardEdge,
-            decoration: const BoxDecoration(
-              color: Color(0xFF0C0A08),
+      if (tree == null) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Text(
+              '${hero.name.split(' ').first}\'s talent constellation has not been charted yet.',
+              textAlign: TextAlign.center,
+              style: VitruvianTypography.serifBody(fontSize: 15, color: const Color(0xFF8A7A68)),
             ),
-            child: Stack(
-              alignment: Alignment.center,
+          ),
+        );
+      }
+
+      final points = playerState.talentPointsFor(hero);
+      final selected = tree.node(selectedId ?? '') ??
+          tree.nodes.firstWhere((n) => _stateOf(tree, n, hero) == _NodeState.available,
+              orElse: () => tree.node(tree.rootId)!);
+
+      return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
               children: [
-                // Oversized Background Helmeted Skull Image shifted to the right
-                Positioned(
-                  left: 60,
-                  top: -50,
-                  bottom: -50,
-                  right: -140,
-                  child: Opacity(
-                    opacity: 0.35,
-                    child: Image.asset(
-                      'assets/images/skull.jpg',
-                      fit: BoxFit.cover,
-                    ),
+                Expanded(
+                  child: Text(
+                    'TALENT GROWTH',
+                    style: VitruvianTypography.serifTitle(fontSize: 18, color: VitruvianColors.agedBone)
+                        .copyWith(letterSpacing: 2.0),
                   ),
                 ),
-
-                // Dark atmospheric gradient overlay
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          const Color(0xFF0C0A08), // Solid dark on left
-                          const Color(0xFF0C0A08).withValues(alpha: 0.45),
-                          const Color(0xFF0C0A08).withValues(alpha: 0.8),
-                        ],
-                        stops: const [0.0, 0.45, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Constellation Canvas & Nodes
-                Center(
-                  child: SizedBox(
-                    width: 340,
-                    height: 420,
-                    child: CustomPaint(
-                      painter: _ConstellationPainter(constellation),
-                      child: Stack(
-                        children: constellation.map((node) {
-                          final isSelected = selectedNode?.id == node.id;
-                          return Positioned(
-                            left: node.pos.dx - 24,
-                            top: node.pos.dy - 24,
-                            child: GestureDetector(
-                              onTap: () => setState(() => selectedNode = node),
-                              behavior: HitTestBehavior.opaque,
-                              child: Column(
-                                children: [
-                                  Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: node.isActive
-                                          ? const Color(0xFF1E1C16)
-                                          : const Color(0xFF100E0A),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? Colors.white
-                                            : (node.isActive
-                                                ? activeColor
-                                                : const Color(0xFF3A3228)),
-                                        width: isSelected
-                                            ? 2.5
-                                            : (node.isActive ? 2.0 : 1.2),
-                                      ),
-                                      boxShadow: node.isActive
-                                          ? [
-                                              BoxShadow(
-                                                color: activeColor.withValues(alpha: 0.35),
-                                                blurRadius: 10,
-                                                spreadRadius: 1,
-                                              )
-                                            ]
-                                          : null,
-                                    ),
-                                    child: Icon(
-                                      node.icon,
-                                      size: 22,
-                                      color: node.isActive
-                                          ? activeColor
-                                          : Colors.white24,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    node.title.toUpperCase(),
-                                    style: VitruvianTypography.monospaceData(
-                                      fontSize: 8,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : (node.isActive
-                                              ? const Color(0xFFE0C8B0)
-                                              : Colors.white30),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
+                Text(
+                  'LVL $level · ${points == 1 ? '1 POINT' : '$points POINTS'}',
+                  style: VitruvianTypography.monospaceData(
+                    fontSize: 12,
+                    color: points > 0 ? _available : const Color(0xFF8A7A68),
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 4),
+            Text(
+              points > 0
+                  ? 'Choose a lit node below one you own. Choices are permanent.'
+                  : 'Gain a level to earn a talent point.',
+              style: VitruvianTypography.serifBody(fontSize: 13, color: const Color(0xFF8A7A68))
+                  .copyWith(fontStyle: FontStyle.italic),
+            ),
+            const SizedBox(height: 12),
 
-          // NODE INTEL PANEL (CURRENT FOCUS)
-          if (selectedNode != null)
             Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: const Color(0xFF151310),
-                border: Border.all(color: const Color(0xFF3A2C20)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              height: 430,
+              clipBehavior: Clip.hardEdge,
+              decoration: const BoxDecoration(color: Color(0xFF0C0A08)),
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'CURRENT FOCUS:\n${selectedNode!.title.toUpperCase()}',
-                          style: VitruvianTypography.serifTitle(
-                            fontSize: 16,
-                            color: const Color(0xFFE0C8B0),
-                          ).copyWith(letterSpacing: 1.2),
+                  Positioned(
+                    left: 60,
+                    top: -50,
+                    bottom: -50,
+                    right: -140,
+                    child: Opacity(
+                      opacity: 0.35,
+                      child: Image.asset('assets/images/skull.jpg', fit: BoxFit.cover),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF0C0A08),
+                            const Color(0xFF0C0A08).withValues(alpha: 0.45),
+                            const Color(0xFF0C0A08).withValues(alpha: 0.8),
+                          ],
+                          stops: const [0.0, 0.45, 1.0],
                         ),
                       ),
-                      Text(
-                        selectedNode!.rank,
-                        style: VitruvianTypography.serifTitle(
-                          fontSize: 15,
-                          color: const Color(0xFF8A7A68),
-                        ).copyWith(letterSpacing: 1.5),
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    selectedNode!.lore,
-                    style: VitruvianTypography.serifBody(
-                      fontSize: 14,
-                      color: const Color(0xFF8A7A68),
-                    ).copyWith(fontStyle: FontStyle.italic),
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(color: Color(0xFF2A2218), thickness: 1),
-                  const SizedBox(height: 8),
-
-                  ...selectedNode!.bonuses.map((bonus) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6.0),
-                      child: Row(
-                        children: [
-                          Text(
-                            bonus.label.toUpperCase(),
-                            style: VitruvianTypography.monospaceData(
-                              fontSize: 12,
-                              color: VitruvianColors.agedBone,
-                            ),
+                  // The tree is drawn on a 340×420 canvas; on narrow phones it scales
+                  // down to fit instead of clipping the outer talents.
+                  Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: SizedBox(
+                        width: 340,
+                        height: 420,
+                        child: CustomPaint(
+                          painter: _ConstellationPainter(tree, hero.unlockedTalents),
+                          child: Stack(
+                            children: tree.nodes.map((node) {
+                              final state = _stateOf(tree, node, hero);
+                              return Positioned(
+                                left: node.pos.dx - 24,
+                                top: node.pos.dy - 24,
+                                child: _buildNode(node, state, isSelected: node.id == selected.id,
+                                    canAfford: points > 0),
+                              );
+                            }).toList(),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final dotCount = (constraints.maxWidth / 5).floor();
-                                return Text(
-                                  '.' * dotCount,
-                                  style: const TextStyle(
-                                    color: Color(0xFF2A2218),
-                                    fontSize: 11,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.clip,
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            bonus.value,
-                            style: VitruvianTypography.monospaceData(
-                              fontSize: 13,
-                              color: activeColor,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    );
-                  }),
+                    ),
+                  ),
                 ],
               ),
             ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
+            _buildDetail(context, playerState, tree, hero, selected, points),
+            const SizedBox(height: 24),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildNode(TalentNode node, _NodeState state, {required bool isSelected, required bool canAfford}) {
+    final color = switch (state) {
+      _NodeState.owned => _owned,
+      _NodeState.available => canAfford ? _available : const Color(0xFF6A5E52),
+      _NodeState.locked => _locked,
+    };
+    return GestureDetector(
+      onTap: () => setState(() => selectedId = node.id),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 48,
+        child: Column(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: state == _NodeState.owned ? const Color(0xFF1E1C16) : const Color(0xFF100E0A),
+                border: Border.all(
+                  color: isSelected ? VitruvianColors.agedBone : color,
+                  width: isSelected ? 2.5 : (state == _NodeState.locked ? 1.2 : 2.0),
+                ),
+                boxShadow: state == _NodeState.owned || (state == _NodeState.available && canAfford)
+                    ? [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 10, spreadRadius: 1)]
+                    : null,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(2),
+                child: _Medallion(node: node, state: state, dim: state == _NodeState.available && !canAfford, glyphColor: color),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              node.title.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: VitruvianTypography.monospaceData(
+                fontSize: 9,
+                color: state == _NodeState.locked ? Colors.white30 : const Color(0xFFE0C8B0),
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.visible,
+              softWrap: false,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetail(BuildContext context, PlayerState playerState, TalentTree tree, HeroCharacter hero,
+      TalentNode node, int points) {
+    final state = _stateOf(tree, node, hero);
+    String status;
+    switch (state) {
+      case _NodeState.owned:
+        status = 'OWNED';
+        break;
+      case _NodeState.available:
+        status = points > 0 ? 'AVAILABLE' : 'NEEDS A TALENT POINT';
+        break;
+      case _NodeState.locked:
+        final parents = node.parentIds.map((id) => tree.node(id)?.title ?? id).join(' or ');
+        status = 'REQUIRES $parents'.toUpperCase();
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151310),
+        border: Border.all(color: const Color(0xFF3A2C20)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 52,
+                height: 52,
+                child: _Medallion(node: node, state: state, dim: false, glyphColor: _owned, size: 52),
+              ),
+              const SizedBox(width: 12),
+              // Title over rank, so a long rank ("TIER III : FROM A OR B") never
+              // squeezes the title on a phone.
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      node.title.toUpperCase(),
+                      style: VitruvianTypography.serifTitle(fontSize: 16, color: const Color(0xFFE0C8B0))
+                          .copyWith(letterSpacing: 1.2),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      node.rank,
+                      style: VitruvianTypography.serifTitle(fontSize: 12, color: const Color(0xFF8A7A68))
+                          .copyWith(letterSpacing: 1.5),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            node.lore,
+            style: VitruvianTypography.serifBody(fontSize: 14, color: const Color(0xFF8A7A68))
+                .copyWith(fontStyle: FontStyle.italic),
+          ),
+          const SizedBox(height: 12),
+          const Divider(color: Color(0xFF2A2218), thickness: 1),
+          ...node.bonuses.map((b) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(b.label.toUpperCase(),
+                          style: VitruvianTypography.monospaceData(fontSize: 12, color: VitruvianColors.agedBone)),
+                    ),
+                    Text(b.value, style: VitruvianTypography.monospaceData(fontSize: 13, color: _available)),
+                  ],
+                ),
+              )),
+          const SizedBox(height: 12),
+          Text(
+            status,
+            style: VitruvianTypography.monospaceData(
+              fontSize: 11,
+              color: state == _NodeState.owned ? _owned : const Color(0xFF8A7A68),
+            ),
+          ),
+          if (state == _NodeState.available && points > 0) ...[
+            const SizedBox(height: 12),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                backgroundColor: _available,
+                foregroundColor: VitruvianColors.voidBlack,
+                side: const BorderSide(color: _available),
+                shape: const RoundedRectangleBorder(),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              onPressed: () => _confirmUnlock(context, playerState, node),
+              child: Text('UNLOCK · 1 POINT', style: VitruvianTypography.serifTitle(fontSize: 14, color: VitruvianColors.voidBlack)),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  void _confirmUnlock(BuildContext context, PlayerState playerState, TalentNode node) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF151310),
+      shape: const RoundedRectangleBorder(side: BorderSide(color: Color(0xFF3A2C20))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('UNLOCK ${node.title.toUpperCase()}?',
+                  style: VitruvianTypography.serifTitle(fontSize: 17, color: const Color(0xFFE0C8B0))),
+              const SizedBox(height: 8),
+              Text('Talents cannot be unlearned. This spends 1 point.',
+                  style: VitruvianTypography.serifBody(fontSize: 14, color: VitruvianColors.agedBone)),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF8A7A68),
+                        side: const BorderSide(color: Color(0xFF3A2C20)),
+                        shape: const RoundedRectangleBorder(),
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('CANCEL'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: _available,
+                        foregroundColor: VitruvianColors.voidBlack,
+                        side: const BorderSide(color: _available),
+                        shape: const RoundedRectangleBorder(),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        playerState.unlockTalent(node.id);
+                      },
+                      child: const Text('UNLOCK'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
 class _ConstellationPainter extends CustomPainter {
-  final List<TalentNodeItem> nodes;
+  final TalentTree tree;
+  final Set<String> unlocked;
 
-  _ConstellationPainter(this.nodes);
+  _ConstellationPainter(this.tree, Set<String> unlocked) : unlocked = Set.of(unlocked);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final activePaint = Paint()
-      ..color = const Color(0xFFC8B458) // Highlighted golden/green
+    final ownedPaint = Paint()
+      ..color = VitruvianColors.goldLeaf
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
-
-    final inactivePaint = Paint()
-      ..color = const Color(0xFF4A4032) // Dim grey/tan
+    final openPaint = Paint()
+      ..color = const Color(0xFFC89B5D).withValues(alpha: 0.6)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    final lockedPaint = Paint()
+      ..color = const Color(0xFF4A4032)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
-    for (final node in nodes) {
+    for (final node in tree.nodes) {
       for (final parentId in node.parentIds) {
-        final parent = nodes.firstWhere((n) => n.id == parentId);
-        if (node.isActive && parent.isActive) {
-          canvas.drawLine(node.pos, parent.pos, activePaint);
+        final parent = tree.node(parentId);
+        if (parent == null) continue;
+        final parentOwned = unlocked.contains(parentId);
+        if (parentOwned && unlocked.contains(node.id)) {
+          canvas.drawLine(parent.pos, node.pos, ownedPaint);
         } else {
-          _drawDottedLine(canvas, parent.pos, node.pos, inactivePaint);
+          _drawDottedLine(canvas, parent.pos, node.pos, parentOwned ? openPaint : lockedPaint);
         }
       }
     }
@@ -468,5 +424,45 @@ class _ConstellationPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _ConstellationPainter old) =>
+      old.tree != tree || old.unlocked.length != unlocked.length || !old.unlocked.containsAll(unlocked);
 }
+
+/// A talent's engraved medallion, clipped round. Locked talents are shown in
+/// grey and faded; one you can't afford yet is slightly dimmed.
+class _Medallion extends StatelessWidget {
+  final TalentNode node;
+  final _NodeState state;
+  final bool dim;
+  final Color glyphColor;
+  final double size;
+
+  const _Medallion({required this.node, required this.state, required this.dim, required this.glyphColor, this.size = 44});
+
+  static const _greyscale = ColorFilter.matrix([
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0, 0, 0, 1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    final glyph = Center(
+      child: Icon(node.icon, size: size * 0.5, color: state == _NodeState.locked ? Colors.white24 : glyphColor),
+    );
+    final asset = node.iconAsset;
+    if (asset == null) return glyph;
+
+    Widget image = ClipOval(
+      child: Image.asset(asset, fit: BoxFit.cover, filterQuality: FilterQuality.medium, errorBuilder: (_, _, _) => glyph),
+    );
+    if (state == _NodeState.locked) {
+      image = Opacity(opacity: 0.4, child: ColorFiltered(colorFilter: _greyscale, child: image));
+    } else if (dim) {
+      image = Opacity(opacity: 0.75, child: image);
+    }
+    return image;
+  }
+}
+

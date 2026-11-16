@@ -46,5 +46,44 @@
         "lane": "front"
       }
     ]
+  },
+  "combat_a1_cove": {
+    "title": "The Cove at Dusk",
+    "description": "Two raiders climb out of the longboat with their blades drawn.",
+    "enemies": [
+      {
+        "id": "raider_1",
+        "bestiary_id": "rowgan_raider",
+        "lane": "front"
+      },
+      {
+        "id": "red_hand_1",
+        "bestiary_id": "rowgan_red_hand",
+        "lane": "back"
+      }
+    ]
+  },
+  "combat_a1_cove_village": {
+    "title": "The Cove at Dusk",
+    "description": "Tam and two fishers with gaffs come down the dunes behind you.",
+    "enemies": [
+      {
+        "id": "raider_1",
+        "bestiary_id": "rowgan_raider",
+        "lane": "front"
+      },
+      {
+        "id": "red_hand_1",
+        "bestiary_id": "rowgan_red_hand",
+        "lane": "back"
+      }
+    ],
+    "allies": [
+      {
+        "id": "tam_1",
+        "ally_id": "tam",
+        "lane": "front"
+      }
+    ]
   }
 }

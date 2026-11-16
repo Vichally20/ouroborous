@@ -7,7 +7,8 @@ class SettingsState extends GetxController {
   final textSpeed = TextSpeedOption.fast.obs;
   final screenShake = true.obs;
   final cloudSync = true.obs;
-  final attackDelay = 2.0.obs;
+  /// Seconds between enemy/ally actions. 0.45s keeps fights brisk (was 2.0s).
+  final attackDelay = 0.45.obs;
 
   void setMasterVolume(double value) {
     masterVolume.value = value;
@@ -34,7 +35,7 @@ class SettingsState extends GetxController {
     textSpeed.value = TextSpeedOption.normal;
     screenShake.value = true;
     cloudSync.value = false;
-    attackDelay.value = 2.0;
+    attackDelay.value = 0.45;
   }
 
   String get textSpeedLabel {
@@ -52,6 +53,6 @@ class SettingsState extends GetxController {
 
   String get attackDelayLabel {
     if (attackDelay.value == 0) return 'Instant';
-    return '${attackDelay.value.toStringAsFixed(1)}s';
+    return '${attackDelay.value.toStringAsFixed(2)}s';
   }
 }

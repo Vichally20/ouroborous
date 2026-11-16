@@ -1,17 +1,30 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../models/combat_event.dart';
+import '../../models/combat_models.dart';
 import '../../models/item.dart';
-import '../../models/character_class.dart';
+import '../../models/skill.dart';
 import '../../states/player_state.dart';
 import '../../states/combat_state.dart';
 import '../../states/inventory_state.dart';
-import '../../models/combat_models.dart';
-import '../../models/skill.dart';
+import '../../states/settings_state.dart';
+import '../combat/combat_widgets.dart';
 import '../widgets/etched_container.dart';
+import '../../states/save_state.dart';
+import '../widgets/toast.dart';
+import '../../game/story_engine.dart';
 
+/// Turn-based lane combat.
+///
+/// Layout (top to bottom): top bar (Flee, encounter, log) · turn banner with the
+/// initiative ribbon · battlefield (enemy back/front lines, THE LINE, your
+/// front/back lines) · HUD (HP/STA lag bars, AP pips, item pouch) · a hand of
+/// four skill cards. The bottom navigation is hidden while a fight is on.
 class CombatScreen extends StatefulWidget {
   const CombatScreen({super.key});
 
@@ -19,1061 +32,794 @@ class CombatScreen extends StatefulWidget {
   State<CombatScreen> createState() => _CombatScreenState();
 }
 
-class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _shakeController;
-  late Animation<double> _shakeAnimation;
-  late Worker _hpWorker;
+class _CombatScreenState extends State<CombatScreen> with TickerProviderStateMixin {
+  static const _beatMs = 560.0;
+
+  final controller = Get.find<CombatController>();
+
+  /// Drives one hit: lean-in (0–120ms), hit-stop + flash (120–190ms),
+  /// knockback (190–330ms), settle.
+  late final AnimationController _beat =
+      AnimationController(vsync: this, duration: Duration(milliseconds: _beatMs.toInt()));
+  late final AnimationController _shake =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 320));
+  late final Worker _eventWorker;
+
+  CombatEvent? _event;
+  int _eventKey = 0;
+  DateTime _eventAt = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Hand slot the player has readied: 0 = Strike, 1.. = hero skills, -1 = Defend.
+  int? _armedSlot;
 
   @override
   void initState() {
     super.initState();
-    _shakeController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-    _shakeAnimation = Tween<double>(begin: 0.0, end: 12.0)
-        .chain(CurveTween(curve: Curves.elasticIn))
-        .animate(_shakeController);
-
-    final combatController = Get.find<CombatController>();
-    
-    // Trigger screen shake when player HP drops
-    _hpWorker = ever(combatController.playerHp, (hp) {
-      if (mounted && hp < combatController.playerMaxHp.value && hp > 0) {
-        _shakeController.forward(from: 0.0);
+    _eventWorker = ever(controller.attackEventId, (_) {
+      final e = controller.lastCombatEvent.value;
+      if (e == null || !mounted) return;
+      setState(() {
+        _event = e;
+        _eventKey++;
+        _eventAt = DateTime.now();
+      });
+      _beat.forward(from: 0);
+      if (_motionOn && (e.isCritical || e.targetId == 'player')) {
+        _shake.forward(from: 0);
       }
     });
   }
 
   @override
   void dispose() {
-    _hpWorker.dispose();
-    _shakeController.dispose();
+    _eventWorker.dispose();
+    _beat.dispose();
+    _shake.dispose();
     super.dispose();
   }
 
+  bool get _motionOn {
+    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final shakeSetting = Get.isRegistered<SettingsState>() ? Get.find<SettingsState>().screenShake.value : true;
+    return !reduce && shakeSetting;
+  }
+
+  bool _isEnemyId(String id) => controller.enemies.any((e) => e.id == id);
+
+  // ─── Hit choreography ───
+
+  Offset _offsetFor(String id) {
+    final e = _event;
+    if (e == null || !_motionOn || !_beat.isAnimating) return Offset.zero;
+    final ms = _beat.value * _beatMs;
+    if (id == e.attackerId) {
+      final dir = _isEnemyId(id) ? 1.0 : -1.0; // enemies lean down, your side leans up
+      final k = ms < 120
+          ? Curves.easeIn.transform(ms / 120)
+          : ms < 260
+              ? 1 - Curves.easeOut.transform((ms - 120) / 140)
+              : 0.0;
+      return Offset(0, 10 * dir * k);
+    }
+    if (id == e.targetId && ms >= 190 && ms <= 330) {
+      final dir = _isEnemyId(id) ? -1.0 : 1.0; // knocked away from the attacker
+      final k = math.sin(math.pi * (ms - 190) / 140);
+      return Offset(3 * k, 6 * dir * k);
+    }
+    return Offset.zero;
+  }
+
+  double _flashFor(String id) {
+    final e = _event;
+    if (e == null || id != e.targetId || !_beat.isAnimating) return 0;
+    final ms = _beat.value * _beatMs;
+    if (ms < 120) return 0;
+    if (ms < 190) return 1; // hit-stop: hold the flash
+    return (1 - (ms - 190) / 260).clamp(0.0, 1.0);
+  }
+
+  Offset get _shakeOffset {
+    if (!_shake.isAnimating) return Offset.zero;
+    final t = _shake.value;
+    final amp = 4 * (1 - t);
+    return Offset(math.sin(t * math.pi * 7) * amp, math.cos(t * math.pi * 5) * amp * 0.5);
+  }
+
+  Widget? _popupFor(String id) {
+    final e = _event;
+    final recent = DateTime.now().difference(_eventAt).inMilliseconds < 1200;
+    if (e != null && recent && id == e.targetId && e.totalDamage > 0) {
+      return Text(
+        '-${e.totalDamage}',
+        key: ValueKey('hit_$_eventKey'),
+        style: VitruvianTypography.monospaceData(
+          fontSize: e.isCritical ? 34 : 26,
+          fontWeight: FontWeight.w700,
+          color: e.isCritical ? CombatPalette.parchment : CombatPalette.wound,
+        ).copyWith(shadows: const [Shadow(color: Colors.black, offset: Offset(0, 2))]),
+      )
+          .animate(delay: 120.ms)
+          .scaleXY(begin: 1.45, end: 1.0, duration: 140.ms, curve: Curves.easeOutBack)
+          .then()
+          .moveY(begin: 0, end: -16, duration: 700.ms, curve: Curves.easeOut)
+          .fadeOut(delay: 350.ms, duration: 350.ms);
+    }
+    final text = controller.damagePopups[id];
+    if (text == null) return null;
+    final negative = text.contains('-');
+    return Text(
+      text,
+      key: ValueKey('pop_${id}_$text'),
+      style: VitruvianTypography.monospaceData(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: negative ? CombatPalette.wound : CombatPalette.verdigris,
+      ).copyWith(shadows: const [Shadow(color: Colors.black, offset: Offset(0, 1))]),
+    ).animate().fadeIn(duration: 120.ms).moveY(begin: 4, end: -6, duration: 600.ms);
+  }
+
+  String _classPortrait() => Get.find<PlayerState>().activeHero.portrait;
+
+  // ─── Build ───
+
   @override
   Widget build(BuildContext context) {
-    final combatController = Get.find<CombatController>();
-
-    return Obx(() {
-      final isPlayerTurn = combatController.isPlayerTurn.value;
-      final enemies = combatController.enemies;
-      final playerHp = combatController.playerHp.value;
-      final playerMaxHp = combatController.playerMaxHp.value;
-      final playerStamina = combatController.playerStamina.value;
-      final playerMaxStamina = combatController.playerMaxStamina.value;
-      final playerAp = combatController.playerAp.value;
-      final selectedEnemyId = combatController.selectedEnemyId.value;
-
-      // Handle Victory / Defeat Overlays
-      bool isVictory = enemies.every((e) => e.isDead.value);
-      bool isDefeat = playerHp <= 0;
-
-      return Scaffold(
-        backgroundColor: VitruvianColors.voidBlack,
-        body: Stack(
-          children: [
-            // Shaking main view
-            AnimatedBuilder(
-              animation: _shakeAnimation,
-              builder: (context, child) {
-                final dx = _shakeAnimation.value * (1.0 - _shakeController.value) * (0.5 - (0.5 * (1.0 - _shakeController.value)));
-                return Transform.translate(
-                  offset: Offset(dx * 2, 0),
-                  child: child,
-                );
-              },
-              child: SafeArea(
-                child: Column(
-                  children: [
-                    // Header: Turn Info
-                    _buildHeader(combatController, isPlayerTurn),
-
-                    // Body: Lane Visualizer (Right Panel occupying full space)
-                    Expanded(
-                      child: _buildBattlefield(combatController, enemies, selectedEnemyId),
-                    ),
-
-                    // Bottom Control HUD deck
-                    _buildBottomHudDeck(
-                      context,
-                      combatController,
-                      isPlayerTurn,
-                      playerHp,
-                      playerMaxHp,
-                      playerStamina,
-                      playerMaxStamina,
-                      playerAp,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ─── Animated Floating Damage Numbers ───
-            _buildAnimatedDamageOverlay(combatController),
-
-            // ─── Skill Popup Banner (slides up from bottom) ───
-            _buildSkillPopupBanner(combatController),
-
-            // Defeat Overlay
-            if (isDefeat) _buildDefeatOverlay(combatController),
-
-            // Victory Overlay
-            if (isVictory) _buildVictoryOverlay(combatController),
-          ],
+    return Scaffold(
+      backgroundColor: CombatPalette.ground,
+      body: SafeArea(
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_beat, _shake]),
+          builder: (context, _) => Transform.translate(
+            offset: _shakeOffset,
+            child: Obx(() => _buildBody(context)),
+          ),
         ),
-      );
-    });
-  }
-
-  // Header Turn banner
-  Widget _buildHeader(CombatController controller, bool isPlayerTurn) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      color: isPlayerTurn ? const Color(0xFF1E160E) : const Color(0xFF2C0F0F),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isPlayerTurn ? const Color(0xFFC89B5D) : VitruvianColors.rustBlood,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                isPlayerTurn ? 'YOUR TURN' : 'ENEMIES MOVING...',
-                style: VitruvianTypography.serifTitle(
-                  fontSize: 18,
-                  color: isPlayerTurn ? const Color(0xFFE4DCD0) : const Color(0xFFFFAAAA),
-                ).copyWith(letterSpacing: 1.5),
-              ),
-            ],
-          ),
-          if (isPlayerTurn)
-            InkWell(
-              onTap: controller.endPlayerTurn,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF151310),
-                  border: Border.all(color: VitruvianColors.sepiaUmber),
-                ),
-                child: Text(
-                  'END TURN',
-                  style: VitruvianTypography.monospaceData(
-                    fontSize: 11,
-                    color: VitruvianColors.agedBone,
-                  ),
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }
 
+  Widget _buildBody(BuildContext context) {
+    final isPlayerTurn = controller.isPlayerTurn.value;
+    final enemies = controller.enemies;
+    final isVictory = enemies.isNotEmpty && enemies.every((e) => e.isDead.value);
+    final isDefeat = controller.playerHp.value <= 0;
+    final armed = isPlayerTurn && !isVictory && !isDefeat ? _armedSlot : null;
 
-
-  // Right panel battlefield
-  Widget _buildBattlefield(
-    CombatController controller,
-    List<ActiveEnemy> enemies,
-    String? selectedEnemyId,
-  ) {
-    return Container(
-      color: const Color(0xFF080605),
-      child: Column(
-        children: [
-          // Lane 1: Enemy Back Line (Row 1)
-          Expanded(
-            child: _buildLaneRow(
-              title: 'Enemy Back Line',
-              laneEnemies: enemies.where((e) => e.lane.value == 'back').toList(),
-              selectedId: selectedEnemyId,
-              onTap: controller.selectEnemy,
-              controller: controller,
-            ),
-          ),
-          const Divider(color: Color(0xFF1E1710)),
-
-          // Lane 2: Enemy Front Line (Row 2)
-          Expanded(
-            child: _buildLaneRow(
-              title: 'Enemy Front Line',
-              laneEnemies: enemies.where((e) => e.lane.value == 'front').toList(),
-              selectedId: selectedEnemyId,
-              onTap: controller.selectEnemy,
-              controller: controller,
-            ),
-          ),
-          
-          // Tactical Divide
-          const Divider(color: Color(0xFF2A2218), thickness: 2, height: 8),
-
-          // Lane 3: Player Front Line (Row 3)
-          Expanded(
-            child: _buildPlayerLane(
-              isFront: true,
-              controller: controller,
-            ),
-          ),
-          const Divider(color: Color(0xFF1E1710)),
-
-          // Lane 4: Player Back Line (Row 4)
-          Expanded(
-            child: _buildPlayerLane(
-              isFront: false,
-              controller: controller,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Lane containing enemies
-  Widget _buildLaneRow({
-    required String title,
-    required List<ActiveEnemy> laneEnemies,
-    required String? selectedId,
-    required Function(String) onTap,
-    required CombatController controller,
-  }) {
     return Stack(
       children: [
-        Positioned(
-          left: 12,
-          top: 6,
-          child: Text(
-            title.toUpperCase(),
-            style: VitruvianTypography.monospaceData(
-              fontSize: 10,
-              color: const Color(0xFF6E5D4F),
-            ),
-          ),
+        Column(
+          children: [
+            _buildTopBar(context),
+            _buildTurnBanner(isPlayerTurn),
+            Expanded(child: _buildBattlefield(armed)),
+            _buildHud(context, isPlayerTurn, armed),
+          ],
         ),
-        // Enemy cards
-        Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: laneEnemies.map((enemy) {
-              final isSelected = selectedId == enemy.id;
-              final isDead = enemy.isDead.value;
-
-              if (isDead) {
-                return const SizedBox.shrink();
-              }
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: GestureDetector(
-                  onTap: () => isDead ? null : onTap(enemy.id),
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 100,
-                        height: 110,
-                        decoration: BoxDecoration(
-                          color: isDead ? Colors.black.withValues(alpha: 0.8) : const Color(0xFF100D0A),
-                          border: Border.all(
-                            color: isSelected
-                                ? const Color(0xFFC89B5D)
-                                : isDead
-                                    ? Colors.transparent
-                                    : const Color(0xFF2C2218),
-                            width: isSelected ? 2.0 : 1.0,
-                          ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: const Color(0xFFC89B5D).withValues(alpha: 0.4),
-                                    blurRadius: 10,
-                                  )
-                                ]
-                              : [],
-                        ),
-                        child: Column(
-                          children: [
-                            // Thumbnail Image or placeholder
-                            Expanded(
-                              child: Opacity(
-                                opacity: isDead ? 0.3 : 1.0,
-                                child: Image.asset(
-                                  enemy.imageAsset,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                ),
-                              ),
-                            ),
-                            // HP Bar
-                            if (!isDead)
-                              Container(
-                                color: const Color(0xFF1A1A1A),
-                                child: Column(
-                                  children: [
-                                    LinearProgressIndicator(
-                                      value: enemy.hp.value / enemy.maxHp,
-                                      backgroundColor: const Color(0xFF220A0A),
-                                      valueColor: const AlwaysStoppedAnimation<Color>(
-                                        Color(0xFF8B0000),
-                                      ),
-                                      minHeight: 4,
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 2.0),
-                                      child: Text(
-                                        '${enemy.hp.value}/${enemy.maxHp}',
-                                        style: VitruvianTypography.monospaceData(fontSize: 9),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (isDead)
-                              Container(
-                                color: const Color(0xFF111111),
-                                width: double.infinity,
-                                alignment: Alignment.center,
-                                padding: const EdgeInsets.symmetric(vertical: 2),
-                                child: Icon(
-                                  Icons.dangerous,
-                                  color: Colors.red,
-                                  size: 14,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      
-                      // Target indicator
-                      if (isSelected && !isDead)
-                        Positioned(
-                          top: -6,
-                          right: -6,
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Color(0xFFC89B5D),
-                            ),
-                            padding: const EdgeInsets.all(3),
-                            child: const Icon(
-                              Icons.ads_click,
-                              size: 12,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-
-                      // ─── Red Flash Overlay (on hit) ───
-                      if (controller.lastHitEnemyId.value == enemy.id && controller.enemyHitEventId.value > 0)
-                        Positioned.fill(
-                          key: ValueKey('flash_${enemy.id}_${controller.enemyHitEventId.value}'),
-                          child: IgnorePointer(
-                            child: Container(
-                              color: Colors.red.withValues(alpha: 0.4),
-                            )
-                                .animate()
-                                .fadeIn(duration: 60.ms)
-                                .then()
-                                .fadeOut(duration: 300.ms),
-                          ),
-                        ),
-
-                      // ─── Animated Floating Damage Numbers ───
-                      if (controller.lastHitEnemyId.value == enemy.id &&
-                          controller.lastCombatEvent.value != null &&
-                          controller.lastCombatEvent.value!.targetId == enemy.id)
-                        Positioned(
-                          top: -28,
-                          left: 0,
-                          right: 0,
-                          key: ValueKey('dmg_${enemy.id}_${controller.enemyHitEventId.value}'),
-                          child: Center(
-                            child: Text(
-                              '-${controller.lastCombatEvent.value!.totalDamage} HP',
-                              style: VitruvianTypography.monospaceData(
-                                fontSize: 18,
-                                color: const Color(0xFFFF5555),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          )
-                              .animate()
-                              .scaleXY(begin: 0.4, end: 1.2, duration: 150.ms, curve: Curves.easeOut)
-                              .then()
-                              .scaleXY(begin: 1.2, end: 1.0, duration: 100.ms)
-                              .slideY(begin: 0, end: -0.5, duration: 800.ms, curve: Curves.easeOut)
-                              .fadeOut(delay: 600.ms, duration: 400.ms),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
+        _buildSkillPopupBanner(controller),
+        if (isDefeat) _buildDefeatOverlay(controller),
+        if (isVictory) _buildVictoryOverlay(controller),
       ],
     );
   }
 
-  Widget _buildAllyCard(ActiveAlly ally, CombatController controller) {
-    final isDead = ally.isDead.value;
-    if (isDead) return const SizedBox.shrink();
+  // ─── Top bar: Flee · encounter · log ───
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+  Widget _buildTopBar(BuildContext context) {
+    final id = controller.currentEncounterId;
+    final title = controller.isSandbox.value
+        ? 'PROVING GROUNDS'
+        : (id != null ? (controller.encounters[id]?['title'] as String? ?? 'COMBAT') : 'COMBAT').toUpperCase();
+    return Container(
+      height: 46,
+      color: CombatPalette.chrome,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: 'Flee',
+            icon: const Icon(Icons.flag_outlined, color: CombatPalette.sepia, size: 22),
+            onPressed: () => _confirmFlee(context),
+          ),
+          Expanded(
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: VitruvianTypography.serifTitle(fontSize: 17, color: CombatPalette.bone).copyWith(letterSpacing: 1.2),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Combat log',
+            icon: const Icon(Icons.history_edu, color: CombatPalette.sepia, size: 22),
+            onPressed: () => _showLog(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmFlee(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: CombatPalette.raised,
+      shape: const RoundedRectangleBorder(side: BorderSide(color: CombatPalette.hairlineStrong)),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('FLEE THE FIGHT?', style: VitruvianTypography.serifTitle(fontSize: 18, color: CombatPalette.parchment)),
+              const SizedBox(height: 8),
+              Text(
+                  controller.isSandbox.value
+                      ? 'You escape with the wounds you have. This fight gives no reward.'
+                      : 'You escape with the wounds you have, and drop a tenth of the crowns you carry. '
+                          'Crowns banked at the Counting House are safe.',
+                  style: VitruvianTypography.serifBody(fontSize: 14, color: CombatPalette.bone)),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: CombatPalette.ash,
+                        side: const BorderSide(color: CombatPalette.hairlineStrong),
+                        shape: const RoundedRectangleBorder(),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('STAY'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: CombatPalette.wound,
+                        side: const BorderSide(color: CombatPalette.rust),
+                        shape: const RoundedRectangleBorder(),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        controller.escapeCombat();
+                      },
+                      child: const Text('FLEE'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: CombatPalette.raised,
+      shape: const RoundedRectangleBorder(side: BorderSide(color: CombatPalette.hairlineStrong)),
+      builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: _buildPostCombatLogReview(controller))),
+    );
+  }
+
+  // ─── Turn banner + initiative ribbon ───
+
+  Widget _buildTurnBanner(bool isPlayerTurn) {
+    final actor = controller.currentActorId.value;
+    String label;
+    if (isPlayerTurn) {
+      label = 'YOUR TURN · R${controller.round.value}';
+    } else {
+      final enemy = controller.enemies.firstWhereOrNull((e) => e.id == actor);
+      final ally = controller.allies.firstWhereOrNull((a) => a.id == actor);
+      label = '${(enemy?.name ?? ally?.name ?? 'THE FOE').toUpperCase()} ACTS';
+    }
+    final enemyActing = !isPlayerTurn && _isEnemyId(actor ?? '');
+
+    final slots = <OrderSlot>[];
+    for (final id in controller.turnOrder) {
+      if (id == 'player') {
+        if (controller.playerHp.value > 0) slots.add(OrderSlot(id, _classPortrait()));
+        continue;
+      }
+      final e = controller.enemies.firstWhereOrNull((x) => x.id == id && !x.isDead.value);
+      if (e != null) {
+        slots.add(OrderSlot(id, e.imageAsset, enemy: true));
+        continue;
+      }
+      final a = controller.allies.firstWhereOrNull((x) => x.id == id && !x.isDead.value);
+      if (a != null) slots.add(OrderSlot(id, a.imageAsset));
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: enemyActing ? CombatPalette.defeatWash : CombatPalette.chrome,
+        border: Border(bottom: BorderSide(color: enemyActing ? CombatPalette.rust : CombatPalette.hairline)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: enemyActing ? CombatPalette.wound : CombatPalette.brass,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 3,
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: VitruvianTypography.serifTitle(
+                fontSize: 15,
+                color: enemyActing ? CombatPalette.wound : CombatPalette.parchment,
+              ).copyWith(letterSpacing: 1.2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              reverse: true,
+              child: OrderRibbon(slots: slots, currentId: actor),
+            ),
+          ),
+          if (isPlayerTurn) ...[
+            const SizedBox(width: 8),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: controller.playerAp.value == 0 ? CombatPalette.ground : CombatPalette.bone,
+                backgroundColor: controller.playerAp.value == 0 ? CombatPalette.brass : CombatPalette.raised,
+                side: const BorderSide(color: CombatPalette.hairlineStrong),
+                shape: const RoundedRectangleBorder(),
+                minimumSize: const Size(0, 32),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+              ),
+              onPressed: () {
+                setState(() => _armedSlot = null);
+                controller.endPlayerTurn();
+              },
+              child: Text('END TURN', style: VitruvianTypography.monospaceData(fontSize: 11)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ─── Battlefield ───
+
+  Widget _buildBattlefield(int? armed) {
+    final living = controller.enemies.where((e) => !e.isDead.value).toList();
+    return Container(
+      color: CombatPalette.sunk,
+      child: Column(
+        children: [
+          Expanded(flex: 5, child: _enemyLane('ENEMY BACK LINE', living.where((e) => e.lane.value == 'back').toList(), armed, 0.86)),
+          Expanded(flex: 6, child: _enemyLane('ENEMY FRONT LINE', living.where((e) => e.lane.value == 'front').toList(), armed, 1.0)),
+          SizedBox(
+            height: 14,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(height: 1, color: CombatPalette.sepia),
+                Container(
+                  color: CombatPalette.sunk,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('THE LINE',
+                      style: VitruvianTypography.serifTitle(fontSize: 11, color: CombatPalette.sepia).copyWith(letterSpacing: 3)),
+                ),
+              ],
+            ),
+          ),
+          Expanded(flex: 5, child: _playerLane(front: true)),
+          Expanded(flex: 5, child: _playerLane(front: false)),
+        ],
+      ),
+    );
+  }
+
+  Widget _laneFrame(String label, Widget row, {bool bottomRule = true}) {
+    return Container(
+      decoration: BoxDecoration(
+        border: bottomRule ? const Border(bottom: BorderSide(color: CombatPalette.hairline)) : null,
+      ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 100,
-            height: 110,
-            decoration: BoxDecoration(
-              color: const Color(0xFF100D0A),
-              border: Border.all(
-                color: const Color(0xFF3A5F8A),
-                width: 1.5,
-              ),
-            ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: Image.asset(
-                    ally.imageAsset,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                  ),
-                ),
-                Container(
-                  color: const Color(0xFF1A1A1A),
-                  child: Column(
-                    children: [
-                      LinearProgressIndicator(
-                        value: ally.hp.value / ally.maxHp,
-                        backgroundColor: const Color(0xFF0A1A22),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFF1E88E5),
-                        ),
-                        minHeight: 4,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        child: Text(
-                          '${ally.name.toUpperCase()} (${ally.hp.value}/${ally.maxHp})',
-                          style: VitruvianTypography.monospaceData(fontSize: 9),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          Positioned(
+            left: 12,
+            top: 5,
+            child: Text(label, style: VitruvianTypography.monospaceData(fontSize: 10, color: CombatPalette.ash)),
           ),
-          if (controller.lastHitEnemyId.value == ally.id && controller.enemyHitEventId.value > 0)
-            Positioned.fill(
-              key: ValueKey('ally_flash_${ally.id}_${controller.enemyHitEventId.value}'),
-              child: IgnorePointer(
-                child: Container(
-                  color: Colors.red.withValues(alpha: 0.4),
-                )
-                    .animate()
-                    .fadeIn(duration: 60.ms)
-                    .then()
-                    .fadeOut(duration: 300.ms),
-              ),
-            ),
-          if (controller.damagePopups.containsKey(ally.id))
-            Positioned(
-              top: -24,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Text(
-                  controller.damagePopups[ally.id]!,
-                  style: VitruvianTypography.monospaceData(
-                    fontSize: 16,
-                    color: controller.damagePopups[ally.id]!.contains('-')
-                        ? const Color(0xFFFF5555)
-                        : Colors.greenAccent,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
+          Positioned.fill(
+            top: 18,
+            child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: Padding(padding: const EdgeInsets.all(6), child: row))),
+          ),
         ],
       ),
     );
   }
 
-  // Player lane representation
-  Widget _buildPlayerLane({
-    required bool isFront,
-    required CombatController controller,
-  }) {
-    final playerLane = controller.playerLane.value;
-    final isPlayerInThisLane = (isFront && playerLane == 'front') || (!isFront && playerLane == 'back');
-    final targetLaneStr = isFront ? 'front' : 'back';
-    final laneAllies = controller.allies.where((a) => a.lane.value == targetLaneStr && !a.isDead.value).toList();
-
-    final playerState = Get.find<PlayerState>();
-    final currentClass = playerState.characterClass.value;
-    String classImageAsset;
-    switch (currentClass.type) {
-      case PersonalityClassType.warrior:
-        classImageAsset = 'assets/images/class_warrior.jpg';
-        break;
-      case PersonalityClassType.sorcerer:
-        classImageAsset = 'assets/images/class_sorcerer.jpg';
-        break;
-      case PersonalityClassType.assassin:
-        classImageAsset = 'assets/images/class_assassin.jpg';
-        break;
-    }
-
-    return Stack(
-      children: [
-        Positioned(
-          left: 12,
-          top: 6,
-          child: Text(
-            isFront ? 'PLAYER FRONT LINE' : 'PLAYER BACK LINE',
-            style: VitruvianTypography.monospaceData(
-              fontSize: 10,
-              color: const Color(0xFF6E5D4F),
+  Widget _enemyLane(String label, List<ActiveEnemy> laneEnemies, int? armed, double scale) {
+    final selectedId = controller.selectedEnemyId.value;
+    return _laneFrame(
+      label,
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: laneEnemies.map((enemy) {
+          final intent = enemy.intent.value;
+          String? targetName;
+          if (intent?.kind == IntentKind.attack && intent?.targetId != null && intent!.targetId != 'player') {
+            targetName = controller.allies.firstWhereOrNull((a) => a.id == intent.targetId)?.name;
+          }
+          final reach = controller.skillReaches(armed == null || armed < 0 ? 0 : armed, enemy);
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: DragTarget<int>(
+              onWillAcceptWithDetails: (d) => _slotTargetsEnemy(d.data) && controller.skillReaches(d.data, enemy),
+              onAcceptWithDetails: (d) {
+                controller.selectEnemy(enemy.id);
+                _cast(d.data);
+              },
+              builder: (context, candidates, _) => CombatantCard(
+                name: enemy.name,
+                image: enemy.imageAsset,
+                hp: enemy.hp.value,
+                maxHp: enemy.maxHp,
+                statuses: [
+                  if (enemy.bleedStacks.value > 0) StatusMark(StatusKind.bleed, enemy.bleedStacks.value),
+                  if (enemy.poisonStacks.value > 0) StatusMark(StatusKind.poison, enemy.poisonStacks.value),
+                ],
+                intent: intent == null ? null : IntentBadge(intent, targetName: targetName),
+                selected: selectedId == enemy.id,
+                outOfReach: !reach,
+                acting: controller.currentActorId.value == enemy.id && !controller.isPlayerTurn.value,
+                dropHighlight: candidates.isNotEmpty,
+                scale: scale,
+                offset: _offsetFor(enemy.id),
+                flash: _flashFor(enemy.id),
+                popup: _popupFor(enemy.id),
+                onTap: () => _tapEnemy(enemy, armed),
+              ),
             ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _playerLane({required bool front}) {
+    final laneName = front ? 'front' : 'back';
+    final playerHere = controller.playerLane.value == laneName;
+    final laneAllies = controller.allies.where((a) => a.lane.value == laneName && !a.isDead.value).toList();
+    final canMove = controller.isPlayerTurn.value && controller.playerAp.value >= 1;
+
+    final children = <Widget>[];
+    if (playerHere) {
+      children.add(Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: CombatantCard(
+          name: controller.playerName.value.split(' ').first,
+          image: _classPortrait(),
+          hp: controller.playerHp.value,
+          maxHp: controller.playerMaxHp.value,
+          isPlayer: true,
+          statuses: [
+            if (controller.isDefending.value) const StatusMark(StatusKind.guard),
+            if (controller.playerBleedStacks.value > 0) StatusMark(StatusKind.bleed, controller.playerBleedStacks.value),
+            if (controller.playerPoisonStacks.value > 0) StatusMark(StatusKind.poison, controller.playerPoisonStacks.value),
+          ],
+          acting: controller.isPlayerTurn.value,
+          offset: _offsetFor('player'),
+          flash: _flashFor('player'),
+          popup: _popupFor('player'),
+        ),
+      ));
+    } else {
+      children.add(Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: _moveSlot(front: front, enabled: canMove),
+      ));
+    }
+    for (final ally in laneAllies) {
+      children.add(Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: CombatantCard(
+          name: ally.name,
+          image: ally.imageAsset,
+          hp: ally.hp.value,
+          maxHp: ally.maxHp,
+          ally: true,
+          statuses: [
+            if (ally.bleedStacks.value > 0) StatusMark(StatusKind.bleed, ally.bleedStacks.value),
+            if (ally.poisonStacks.value > 0) StatusMark(StatusKind.poison, ally.poisonStacks.value),
+          ],
+          acting: controller.currentActorId.value == ally.id && !controller.isPlayerTurn.value,
+          offset: _offsetFor(ally.id),
+          flash: _flashFor(ally.id),
+          popup: _popupFor(ally.id),
+        ),
+      ));
+    }
+    return _laneFrame(front ? 'YOUR FRONT LINE' : 'YOUR BACK LINE', Row(mainAxisSize: MainAxisSize.min, children: children),
+        bottomRule: front);
+  }
+
+  /// The empty lane is a tappable target that says what moving costs and gives.
+  Widget _moveSlot({required bool front, required bool enabled}) {
+    final title = front ? 'STEP FORWARD' : 'FALL BACK';
+    final payoff = front ? 'reach their back line' : 'back-line foes can\'t reach';
+    return Semantics(
+      button: true,
+      label: '$title, 1 action point, $payoff',
+      child: GestureDetector(
+        onTap: enabled
+            ? () {
+                setState(() => _armedSlot = null);
+                controller.playerMove();
+              }
+            : null,
+        child: Container(
+          width: 112,
+          constraints: const BoxConstraints(minHeight: 66),
+          decoration: BoxDecoration(
+            border: Border.all(color: enabled ? CombatPalette.brass.withValues(alpha: 0.7) : CombatPalette.hairlineStrong),
+            color: enabled ? CombatPalette.brass.withValues(alpha: 0.06) : Colors.transparent,
+          ),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(front ? Icons.north : Icons.south, size: 16, color: enabled ? CombatPalette.brass : CombatPalette.ash),
+              Text(title, style: VitruvianTypography.monospaceData(fontSize: 10, color: enabled ? CombatPalette.parchment : CombatPalette.ash)),
+              Text('1 AP · $payoff',
+                  textAlign: TextAlign.center,
+                  style: VitruvianTypography.monospaceData(fontSize: 9, color: CombatPalette.ash)),
+            ],
           ),
         ),
-        // Move button in empty lane
-        if (!isPlayerInThisLane && laneAllies.isEmpty && controller.isPlayerTurn.value && controller.playerAp.value >= 1)
-          Center(
-            child: TextButton.icon(
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFFC89B5D),
-                side: BorderSide(color: const Color(0xFFC89B5D).withValues(alpha: 0.3)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              ),
-              onPressed: controller.playerMove,
-              icon: Icon(isFront ? Icons.arrow_upward : Icons.arrow_downward, size: 16),
-              label: Text(
-                isFront ? 'MOVE TO FRONT LINE (1 AP)' : 'MOVE TO BACK LINE (1 AP)',
-                style: VitruvianTypography.monospaceData(fontSize: 10, color: const Color(0xFFC89B5D)),
-              ),
-            ),
-          ),
+      ),
+    );
+  }
 
-        // Player and Ally cards
-        if (isPlayerInThisLane || laneAllies.isNotEmpty)
-          Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (isPlayerInThisLane) ...[
-                  // Shift Lane button next to character
-                  if (controller.isPlayerTurn.value && controller.playerAp.value >= 1) ...[
-                    Tooltip(
-                      message: 'Shift lane (Costs 1 AP)',
-                      child: Material(
-                        color: const Color(0xFFC89B5D),
-                        shape: const CircleBorder(),
-                        elevation: 4,
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: controller.playerMove,
-                          child: Padding(
-                            padding: const EdgeInsets.all(10.0),
-                            child: Icon(
-                              isFront ? Icons.arrow_downward : Icons.arrow_upward,
-                              size: 18,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
+  // ─── Targeting & casting ───
+
+  bool _slotTargetsEnemy(int slot) {
+    if (slot < 0) return false;
+    final t = controller.skillForSlot(slot).target;
+    return t == SkillTarget.singleEnemy || t == SkillTarget.allEnemies;
+  }
+
+  void _tapEnemy(ActiveEnemy enemy, int? armed) {
+    controller.selectEnemy(enemy.id);
+    if (armed != null && _slotTargetsEnemy(armed) && controller.skillReaches(armed, enemy)) {
+      _cast(armed);
+    }
+  }
+
+  void _tapHand(int slot) {
+    if (_armedSlot == slot) {
+      _cast(slot);
+    } else {
+      setState(() => _armedSlot = slot);
+    }
+  }
+
+  void _cast(int slot) {
+    setState(() => _armedSlot = null);
+    if (slot == -1) {
+      controller.playerDefend();
+    } else {
+      controller.playerAttack(slot);
+    }
+  }
+
+  // ─── HUD: vitals, AP, pouch, hand ───
+
+  Widget _buildHud(BuildContext context, bool isPlayerTurn, int? armed) {
+    final slots = <int>[0, ...List.generate(math.min(2, controller.playerSkills.length), (i) => i + 1), -1];
+    final armedCost = armed == null ? 0 : (armed == -1 ? 1 : controller.skillForSlot(armed).apCost);
+    final consumables = Get.find<InventoryState>().ledger.where((i) => i.category == ItemCategory.consumable).fold<int>(0, (n, i) => n + i.count);
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: CombatPalette.chrome,
+        border: Border(top: BorderSide(color: CombatPalette.hairline)),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    _vitalRow('HP', controller.playerHp.value, controller.playerMaxHp.value, CombatPalette.blood, CombatPalette.bloodTrough),
+                    const SizedBox(height: 5),
+                    _vitalRow('STA', controller.playerStamina.value, controller.playerMaxStamina.value, CombatPalette.stamina, CombatPalette.sunk),
                   ],
-
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        width: 100,
-                        height: 110,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF100D0A),
-                          border: Border.all(
-                            color: VitruvianColors.sepiaUmber,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            // Gladiator artwork
-                            Expanded(
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  Image.asset(
-                                    classImageAsset,
-                                    fit: BoxFit.cover,
-                                  ),
-                                  // Defending visual indicator
-                                  if (controller.isDefending.value)
-                                    Container(
-                                      color: Colors.blue.withValues(alpha: 0.2),
-                                      alignment: Alignment.center,
-                                      child: const Icon(
-                                        Icons.shield,
-                                        color: Colors.cyanAccent,
-                                        size: 40,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            
-                            // Small text label
-                            Container(
-                              color: const Color(0xFF1C140E),
-                              padding: const EdgeInsets.symmetric(vertical: 2),
-                              alignment: Alignment.center,
-                              child: Text(
-                                'YOU',
-                                style: VitruvianTypography.serifTitle(fontSize: 11),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // ─── Red Flash Overlay (when enemy hits player) ───
-                      if (controller.lastHitEnemyId.value == 'player' && controller.enemyHitEventId.value > 0)
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          width: 100,
-                          height: 110,
-                          key: ValueKey('player_flash_${controller.enemyHitEventId.value}'),
-                          child: IgnorePointer(
-                            child: Container(
-                              color: Colors.red.withValues(alpha: 0.4),
-                            )
-                                .animate()
-                                .fadeIn(duration: 60.ms)
-                                .then()
-                                .fadeOut(duration: 300.ms),
-                          ),
-                        ),
-
-                      // Floating Damage / Heal Popups (kept for defend/item feedback)
-                      if (controller.damagePopups.containsKey('player'))
-                        Positioned(
-                          top: -24,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: Text(
-                              controller.damagePopups['player']!,
-                              style: VitruvianTypography.monospaceData(
-                                fontSize: 16,
-                                color: controller.damagePopups['player']!.contains('-')
-                                    ? const Color(0xFFFF5555)
-                                    : Colors.greenAccent,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Column(
+                children: [
+                  ApPips(current: controller.playerAp.value, preview: isPlayerTurn ? armedCost : 0),
+                  const SizedBox(height: 4),
+                  Text('AP', style: VitruvianTypography.monospaceData(fontSize: 9, color: CombatPalette.sepia)),
                 ],
-                for (final ally in laneAllies) _buildAllyCard(ally, controller),
-              ],
+              ),
+              const SizedBox(width: 6),
+              Tooltip(
+                message: 'Item pouch (1 AP)',
+                child: InkWell(
+                  onTap: isPlayerTurn && controller.playerAp.value > 0 ? () => _showItemsBottomSheet(context, controller) : null,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(border: Border.all(color: CombatPalette.hairlineStrong), color: CombatPalette.raised),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(Icons.science_outlined, size: 20,
+                            color: isPlayerTurn && controller.playerAp.value > 0 ? CombatPalette.verdigris : CombatPalette.ash),
+                        Positioned(
+                          right: 2,
+                          bottom: 1,
+                          child: Text('$consumables', style: VitruvianTypography.monospaceData(fontSize: 9, color: CombatPalette.ash)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(
+            height: 26, // leaves room for a readied card to lift 8px without covering the hint
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Text(
+                armed == null
+                    ? (isPlayerTurn ? 'Tap a card to ready it' : '')
+                    : (armed == -1 || !_slotTargetsEnemy(armed))
+                        ? 'Tap again to use it'
+                        : 'Tap again or tap an enemy to strike · or drag onto a target',
+                style: VitruvianTypography.serifBody(fontSize: 12, color: CombatPalette.ash).copyWith(fontStyle: FontStyle.italic),
+              ),
             ),
           ),
+          Row(
+            children: [
+              for (final s in slots) ...[
+                Expanded(child: _handCard(s, isPlayerTurn: isPlayerTurn, armed: armed == s)),
+                if (s != slots.last) const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _vitalRow(String label, int value, int max, Color fill, Color trough) {
+    return Row(
+      children: [
+        SizedBox(width: 26, child: Text(label, style: VitruvianTypography.monospaceData(fontSize: 10, color: CombatPalette.ash))),
+        Expanded(child: LagBar(value: value, max: max, fill: fill, trough: trough)),
+        SizedBox(
+          width: 62,
+          child: Text('$value/$max',
+              textAlign: TextAlign.right,
+              style: VitruvianTypography.monospaceData(fontSize: 12, color: CombatPalette.parchment)),
+        ),
       ],
     );
   }
 
-  // Bottom Control HUD Deck
-  Widget _buildBottomHudDeck(
-    BuildContext context,
-    CombatController controller,
-    bool isPlayerTurn,
-    int playerHp,
-    int playerMaxHp,
-    int playerStamina,
-    int playerMaxStamina,
-    int playerAp,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF0C0A08),
-        border: Border(top: BorderSide(color: Color(0xFF2A2218), width: 1.0)),
+  Widget _handCard(int slot, {required bool isPlayerTurn, required bool armed}) {
+    final isDefend = slot == -1;
+    final CombatSkill? skill = isDefend ? null : controller.skillForSlot(slot);
+    final name = isDefend ? 'Defend' : skill!.name;
+    final icon = isDefend ? Icons.shield : skill!.icon;
+    final apCost = isDefend ? 1 : skill!.apCost;
+    final staCost = isDefend ? 0 : skill!.staminaCost;
+    final targetsEnemy = _slotTargetsEnemy(slot);
+    final magic = skill?.type == SkillType.magical;
+
+    final target = controller.enemies.firstWhereOrNull((e) => e.id == controller.selectedEnemyId.value && !e.isDead.value);
+    final preview = targetsEnemy && target != null ? controller.previewSkillDamage(slot, target) : null;
+    final reach = !targetsEnemy || target == null || controller.skillReaches(slot, target);
+
+    String? reason;
+    if (isPlayerTurn) {
+      if (controller.playerAp.value < apCost) {
+        reason = 'NO AP';
+      } else if (controller.playerStamina.value < staCost) {
+        reason = 'NEEDS $staCost STA';
+      } else if (!reach) {
+        reason = 'OUT OF REACH';
+      }
+    }
+    final enabled = isPlayerTurn && reason == null;
+
+    String effect;
+    if (isDefend) {
+      effect = '+${30 + (controller.playerConstitution.value * 1.5).round()} STA';
+    } else if (preview != null) {
+      effect = preview.$1 == preview.$2 ? '${preview.$1}' : '${preview.$1}–${preview.$2}';
+    } else if (skill!.staminaRestore > 0) {
+      effect = '+${skill.staminaRestore} STA';
+    } else {
+      effect = targetsEnemy ? 'PICK A TARGET' : 'SELF';
+    }
+
+    final card = AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutBack,
+      height: 94,
+      transform: Matrix4.translationValues(0, armed ? -8 : 0, 0),
+      padding: const EdgeInsets.fromLTRB(4, 7, 4, 5),
+      decoration: BoxDecoration(
+        color: CombatPalette.raised,
+        border: Border.all(color: armed ? CombatPalette.brass : CombatPalette.hairlineStrong, width: armed ? 1.5 : 1),
+        boxShadow: armed ? [BoxShadow(color: CombatPalette.brass.withValues(alpha: 0.4), blurRadius: 10)] : null,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // HP, Stamina progress bars, and AP gems
-          Row(
-            children: [
-              // HP HUD
-              Expanded(
-                flex: 4,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('HP',
-                            style: VitruvianTypography.monospaceData(
-                                fontSize: 10, color: const Color(0xFFDCD4C8))),
-                        Text('$playerHp/$playerMaxHp',
-                            style: VitruvianTypography.monospaceData(
-                                fontSize: 10, color: const Color(0xFFDCD4C8))),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    LinearProgressIndicator(
-                      value: playerHp / playerMaxHp,
-                      backgroundColor: const Color(0xFF220A0A),
-                      valueColor: const AlwaysStoppedAnimation<Color>(VitruvianColors.rustBlood),
-                      minHeight: 8,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-
-              // Action Points (AP) - 3 Gems in the center
-              Column(
-                children: [
-                  Text('AP',
-                      style: VitruvianTypography.monospaceData(
-                        fontSize: 9,
-                        color: VitruvianColors.sepiaUmber,
-                      )),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: List.generate(3, (index) {
-                      bool isActive = playerAp > index;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3.0),
-                        child: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isActive
-                                ? const Color(0xFFC89B5D)
-                                : const Color(0xFF1E1710),
-                            border: Border.all(
-                              color: isActive ? Colors.white70 : const Color(0xFF3E3224),
-                              width: 1,
-                            ),
-                            boxShadow: isActive
-                                ? [
-                                    BoxShadow(
-                                      color: const Color(0xFFC89B5D).withValues(alpha: 0.6),
-                                      blurRadius: 6,
-                                    )
-                                  ]
-                                : [],
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 16),
-
-              // Stamina HUD
-              Expanded(
-                flex: 4,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('STAM',
-                            style: VitruvianTypography.monospaceData(
-                                fontSize: 10, color: const Color(0xFFDCD4C8))),
-                        Text('$playerStamina/$playerMaxStamina',
-                            style: VitruvianTypography.monospaceData(
-                                fontSize: 10, color: const Color(0xFFDCD4C8))),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    LinearProgressIndicator(
-                      value: playerStamina / playerMaxStamina,
-                      backgroundColor: const Color(0xFF1A1A10),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8B8000)),
-                      minHeight: 8,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // The Three Buttons: ATTACK, DEFENSE, ITEMS
-          Row(
-            children: [
-              // 1. Attack Button
-              Expanded(
-                child: _buildCombatButton(
-                  title: 'ATTACK',
-                  subtitle: 'Execute active skill',
-                  icon: Icons.flash_on,
-                  borderColor: isPlayerTurn && playerAp > 0 ? VitruvianColors.rustBlood : const Color(0xFF2C1C1C),
-                  colorText: isPlayerTurn && playerAp > 0 ? const Color(0xFFFFAAAA) : Colors.white24,
-                  onTap: isPlayerTurn && playerAp > 0
-                      ? () => _showSkillBottomSheet(context, controller)
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 10),
-
-              // 2. Defense Button
-              Expanded(
-                child: _buildCombatButton(
-                  title: 'DEFEND',
-                  subtitle: 'Shield & +45 Stamina',
-                  icon: Icons.shield,
-                  borderColor: isPlayerTurn && playerAp > 0 ? VitruvianColors.sepiaUmber : const Color(0xFF201B15),
-                  colorText: isPlayerTurn && playerAp > 0 ? const Color(0xFFE4DCD0) : Colors.white24,
-                  onTap: isPlayerTurn && playerAp > 0 ? controller.playerDefend : null,
-                ),
-              ),
-              const SizedBox(width: 10),
-
-              // 3. Items Button
-              Expanded(
-                child: _buildCombatButton(
-                  title: 'ITEMS',
-                  subtitle: 'Use inventory flask',
-                  icon: Icons.healing,
-                  borderColor: isPlayerTurn && playerAp > 0 ? const Color(0xFF1F3535) : const Color(0xFF121E1E),
-                  colorText: isPlayerTurn && playerAp > 0 ? Colors.cyanAccent : Colors.white24,
-                  onTap: isPlayerTurn && playerAp > 0
-                      ? () => _showItemsBottomSheet(context, controller)
-                      : null,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Combat Custom deck button (Icon only to prevent overflow)
-  Widget _buildCombatButton({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color borderColor,
-    required Color colorText,
-    required VoidCallback? onTap,
-  }) {
-    return Tooltip(
-      message: '$title: $subtitle',
-      textStyle: VitruvianTypography.monospaceData(fontSize: 11, color: Colors.black),
-      decoration: const BoxDecoration(
-        color: VitruvianColors.agedBone,
-        borderRadius: BorderRadius.zero,
-      ),
-      child: InkWell(
-        onTap: onTap,
-        child: EtchedContainer(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          borderColor: borderColor,
-          backgroundColor: const Color(0xFF0F0C0A),
-          child: Icon(
-            icon,
-            size: 22,
-            color: colorText,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Skill Selection Bottom Sheet
-  void _showSkillBottomSheet(BuildContext context, CombatController controller) {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Color(0xFF0E0C0A),
-          border: Border(
-            top: BorderSide(color: Color(0xFF2A2218), width: 1.5),
-          ),
-        ),
+      child: Opacity(
+        opacity: enabled || !isPlayerTurn ? 1 : 0.45,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            Icon(icon, size: 24, color: magic ? CombatPalette.lapis : (isDefend ? CombatPalette.brass : CombatPalette.parchment)),
+            Text(name,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: VitruvianTypography.serifTitle(fontSize: 11, color: CombatPalette.bone).copyWith(height: 1.05)),
+            Text(effect,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: VitruvianTypography.monospaceData(fontSize: 10, color: CombatPalette.parchment)),
             Text(
-              'CHOOSE COMBAT SKILL',
-              style: VitruvianTypography.serifTitle(fontSize: 16, color: VitruvianColors.sepiaUmber),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            
-            Builder(
-              builder: (context) {
-                final selectedEnemy = controller.enemies.firstWhereOrNull(
-                  (e) => e.id == controller.selectedEnemyId.value,
-                );
-
-                return Column(
-                  children: controller.playerSkills.asMap().entries.map((entry) {
-                    final int idx = entry.key;
-                    final String skillId = entry.value;
-                    final skill = SkillDictionary.getSkill(skillId);
-
-                    final bool isTargetedEnemy = skill.target == SkillTarget.singleEnemy || skill.target == SkillTarget.allEnemies;
-                    final bool inRange = !isTargetedEnemy ||
-                        skill.type == SkillType.magical ||
-                        selectedEnemy == null ||
-                        controller.canReachTarget(
-                          controller.playerLane.value,
-                          selectedEnemy.lane.value,
-                          controller.playerWeaponRange.value,
-                        );
-
-                    String desc = skill.description;
-                    if (skill.minDamage > 0) {
-                      desc = 'Deals ${skill.minDamage}-${skill.maxDamage} ${skill.type.name} damage. $desc';
-                    }
-                    if (skill.effectDescription.isNotEmpty) {
-                      desc = '$desc (${skill.effectDescription})';
-                    }
-                    if (!inRange) {
-                      desc = 'OUT OF RANGE — Move to Front Line or equip a ranged weapon.\n$desc';
-                    }
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0),
-                      child: _buildSkillListItem(
-                        name: 'Skill ${idx + 1}: ${skill.name}',
-                        desc: desc,
-                        ap: skill.apCost,
-                        stamina: skill.staminaCost,
-                        isEnabled: controller.playerStamina.value >= skill.staminaCost && inRange,
-                        onTap: () {
-                          Get.back(); // close sheet
-                          controller.playerAttack(idx + 1);
-                        },
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-            const SizedBox(height: 4),
-
-            // Close
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E1710),
-                foregroundColor: VitruvianColors.agedBone,
-                side: const BorderSide(color: Color(0xFF382C1F)),
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-              ),
-              child: Text(
-                'CANCEL',
-                style: VitruvianTypography.monospaceData(fontSize: 12),
-              ),
-              onPressed: () => Get.back(),
+              reason ?? '$apCost AP${staCost > 0 ? ' · $staCost' : ''}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: VitruvianTypography.monospaceData(fontSize: 9, color: reason != null ? CombatPalette.wound : CombatPalette.stamina),
             ),
           ],
         ),
       ),
     );
-  }
 
-  Widget _buildSkillListItem({
-    required String name,
-    required String desc,
-    required int ap,
-    required int stamina,
-    required bool isEnabled,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: isEnabled ? onTap : null,
-      child: EtchedContainer(
-        padding: const EdgeInsets.all(12),
-        borderColor: isEnabled ? const Color(0xFF382C1F) : const Color(0xFF1F1212),
-        backgroundColor: isEnabled ? const Color(0xFF16120E) : const Color(0xFF0F0B0B),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: VitruvianTypography.serifTitle(
-                      fontSize: 14,
-                      color: isEnabled ? VitruvianColors.agedBone : Colors.white24,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    desc,
-                    style: VitruvianTypography.serifBody(
-                      fontSize: 12,
-                      color: isEnabled ? const Color(0xFF888078) : Colors.white12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '$ap AP',
-                  style: VitruvianTypography.monospaceData(
-                    fontSize: 12,
-                    color: isEnabled ? const Color(0xFFC89B5D) : Colors.white24,
-                  ),
-                ),
-                Text(
-                  '$stamina STAM',
-                  style: VitruvianTypography.monospaceData(
-                    fontSize: 10,
-                    color: isEnabled ? const Color(0xFF8B8000) : Colors.white12,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+    final tappable = Semantics(
+      button: true,
+      enabled: enabled,
+      label: '$name, $apCost action point${apCost == 1 ? '' : 's'}, $effect${reason != null ? ', $reason' : ''}',
+      child: GestureDetector(onTap: enabled ? () => _tapHand(slot) : null, child: card),
+    );
+
+    if (!enabled || !targetsEnemy) return tappable;
+    return Draggable<int>(
+      data: slot,
+      onDragStarted: () => setState(() => _armedSlot = slot),
+      feedback: Material(
+        color: Colors.transparent,
+        child: SizedBox(width: 80, child: Opacity(opacity: 0.9, child: card)),
       ),
+      childWhenDragging: Opacity(opacity: 0.35, child: card),
+      child: tappable,
     );
   }
 
@@ -1292,60 +1038,64 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3E1212),
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.red),
-                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    onPressed: () {
-                      if (controller.isSandbox.value) {
-                        if (controller.onSandboxRetry != null) {
-                          controller.onSandboxRetry!();
-                        } else {
-                          controller.escapeCombat();
-                        }
-                      } else {
-                        controller.startCombat('combat_crypt_werewolves');
-                      }
-                    },
-                    child: Text(
-                      controller.isSandbox.value ? 'RETRY WAVE' : 'RETRY CONFLICT',
-                      style: VitruvianTypography.monospaceData(fontSize: 13),
-                    ),
+                  child: _DefeatButton(
+                    label: controller.isSandbox.value ? 'RETRY WAVE' : 'RETRY CONFLICT',
+                    icon: Icons.replay,
+                    fill: const Color(0xFF3E1212),
+                    edge: const Color(0xFFB0413E),
+                    onTap: controller.retryCombat,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF151310),
-                      foregroundColor: VitruvianColors.agedBone,
-                      side: const BorderSide(color: Color(0xFF3C3224)),
-                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    onPressed: () {
-                      if (controller.isSandbox.value) {
-                        controller.escapeCombat();
-                      } else {
-                        controller.finishCombatDefeat();
-                      }
-                    },
-                    child: Text(
-                      controller.isSandbox.value ? 'RETURN TO SETUP' : 'RETREAT TO SANCTUARY',
-                      style: VitruvianTypography.monospaceData(fontSize: 13),
-                    ),
+                  child: _DefeatButton(
+                    label: controller.isSandbox.value
+                        ? 'RETURN TO SETUP'
+                        : (controller.currentDefeatNodeId.value != null ? 'CARRY ON' : 'RETREAT TO SANCTUARY'),
+                    icon: controller.isSandbox.value ? Icons.arrow_back : Icons.restore,
+                    fill: const Color(0xFF151310),
+                    edge: VitruvianColors.goldLeaf,
+                    onTap: () => _retreat(controller),
                   ),
                 ),
               ],
             ),
+            if (!controller.isSandbox.value && controller.currentDefeatNodeId.value == null) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Retreating returns you to your last saved checkpoint.',
+                textAlign: TextAlign.center,
+                style: VitruvianTypography.serifBody(fontSize: 12, color: const Color(0xFF8C7D73)),
+              ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  /// Sandbox: back to wave setup. Story: reload the last save (the moment before
+  /// this fight), so the defeat and its 1 HP are not carried forward.
+  Future<void> _retreat(CombatController controller) async {
+    if (controller.isSandbox.value) {
+      controller.escapeCombat();
+      return;
+    }
+    // This fight's story carries on after a loss: go to that scene instead.
+    final defeatNode = controller.currentDefeatNodeId.value;
+    if (defeatNode != null) {
+      controller.finishCombatDefeat();
+      Get.find<StoryEngine>().goToNode(defeatNode);
+      return;
+    }
+    final save = Get.isRegistered<SaveState>() ? Get.find<SaveState>() : null;
+    final error = save == null ? 'There is no saved checkpoint for this game.' : await save.restoreCheckpoint();
+    if (error != null) {
+      controller.finishCombatDefeat();
+      showToast('NO CHECKPOINT', error, tone: ToastTone.danger);
+    } else {
+      showToast('CHECKPOINT RESTORED', 'You wake where you last rested, before the fight.');
+    }
   }
 
   // Victory Overlay Screen
@@ -1483,8 +1233,9 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
 
       if (eventId == 0 || event == null) return const SizedBox.shrink();
 
+      // Just under the turn banner, clear of your cards and the hand.
       return Positioned(
-        bottom: 200,
+        top: 96,
         left: 24,
         right: 24,
         key: ValueKey('skill_popup_$eventId'),
@@ -1552,54 +1303,45 @@ class _CombatScreenState extends State<CombatScreen> with SingleTickerProviderSt
   }
 
   // ─── Animated Damage Number Overlay (centered on screen for emphasis) ───
-  Widget _buildAnimatedDamageOverlay(CombatController controller) {
-    return Obx(() {
-      final eventId = controller.enemyHitEventId.value;
-      final event = controller.lastCombatEvent.value;
+}
 
-      if (eventId == 0 || event == null) return const SizedBox.shrink();
+/// One of the two defeat choices: equal height, a single line of text, a 1px
+/// border in its own colour.
+class _DefeatButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color fill;
+  final Color edge;
+  final VoidCallback onTap;
 
-      final isPlayerAttacking = event.isPlayerAction;
-      final damageColor = isPlayerAttacking
-          ? const Color(0xFFFF5555)
-          : const Color(0xFFFFAAAA);
+  const _DefeatButton({required this.label, required this.icon, required this.fill, required this.edge, required this.onTap});
 
-      return Positioned(
-        top: isPlayerAttacking
-            ? MediaQuery.of(context).size.height * 0.22
-            : MediaQuery.of(context).size.height * 0.62,
-        left: 0,
-        right: 0,
-        key: ValueKey('dmg_overlay_$eventId'),
-        child: Center(
-          child: Text(
-            '-${event.totalDamage}',
-            style: VitruvianTypography.serifTitle(
-              fontSize: 42,
-              color: damageColor,
-              fontWeight: FontWeight.bold,
-            ).copyWith(
-              shadows: [
-                Shadow(
-                  color: damageColor.withValues(alpha: 0.8),
-                  blurRadius: 20,
-                ),
-                const Shadow(
-                  color: Colors.black,
-                  blurRadius: 6,
-                ),
-              ],
-            ),
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      child: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          backgroundColor: fill,
+          foregroundColor: VitruvianColors.agedBone,
+          side: BorderSide(color: edge, width: 1),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+        ),
+        onPressed: onTap,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: edge),
+              const SizedBox(width: 8),
+              Text(label, maxLines: 1, style: VitruvianTypography.monospaceData(fontSize: 12, color: VitruvianColors.agedBone)),
+            ],
           ),
-        )
-            .animate()
-            .scaleXY(begin: 0.3, end: 1.3, duration: 120.ms, curve: Curves.easeOut)
-            .then()
-            .scaleXY(begin: 1.3, end: 1.0, duration: 80.ms)
-            .then(delay: 500.ms)
-            .fadeOut(duration: 400.ms)
-            .slideY(begin: 0, end: -0.3, duration: 400.ms, curve: Curves.easeIn),
-      );
-    });
+        ),
+      ),
+    );
   }
 }
+

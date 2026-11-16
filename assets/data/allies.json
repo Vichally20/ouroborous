@@ -1,7 +1,7 @@
 {
   "shadow_hound": {
     "name": "Shadow Hound",
-    "imageAsset": "assets/images/enemy_werewolf_black.png",
+    "imageAsset": "assets/images/allies/shadow_hound.png",
     "stats": {
       "maxHp": 40,
       "maxStamina": 80,
@@ -15,11 +15,13 @@
       "self_preservation": 0.15,
       "preferred_range": 0.0
     },
-    "skills": ["bite"]
+    "skills": [
+      "bite"
+    ]
   },
   "iron_golem": {
     "name": "Iron Golem",
-    "imageAsset": "assets/images/enemy_werewolf_silver.png",
+    "imageAsset": "assets/images/allies/iron_golem.png",
     "stats": {
       "maxHp": 90,
       "maxStamina": 60,
@@ -33,11 +35,13 @@
       "self_preservation": 0.5,
       "preferred_range": 0.0
     },
-    "skills": ["strike"]
+    "skills": [
+      "strike"
+    ]
   },
   "mercenary_scout": {
     "name": "Mercenary Scout",
-    "imageAsset": "assets/images/player.png",
+    "imageAsset": "assets/images/allies/mercenary_scout.png",
     "stats": {
       "maxHp": 45,
       "maxStamina": 90,
@@ -51,6 +55,28 @@
       "self_preservation": 0.6,
       "preferred_range": 1.0
     },
-    "skills": ["strike"]
+    "skills": [
+      "strike"
+    ]
+  },
+  "tam": {
+    "name": "Tam",
+    "imageAsset": "assets/images/allies/tam.png",
+    "stats": {
+      "maxHp": 30,
+      "maxStamina": 70,
+      "maxAp": 2,
+      "strength": 9,
+      "defense": 2,
+      "speed": 12
+    },
+    "ai_profile": {
+      "aggression": 0.6,
+      "self_preservation": 0.5,
+      "preferred_range": 0.0
+    },
+    "skills": [
+      "strike"
+    ]
   }
 }

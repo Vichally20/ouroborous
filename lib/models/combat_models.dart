@@ -1,5 +1,25 @@
 import 'package:get/get.dart';
 
+enum IntentKind { attack, advance, charge, retreat, hold }
+
+/// What an enemy has committed to do with its first action next turn.
+/// Planned at the start of the player's turn and shown on the enemy's card.
+class EnemyIntent {
+  final IntentKind kind;
+  final String? skillId;
+
+  /// 'player' or an ally id. Only for [IntentKind.attack].
+  final String? targetId;
+
+  /// Expected damage if the attack lands normally (no crit, no glance).
+  final int estimatedDamage;
+
+  const EnemyIntent(this.kind, {this.skillId, this.targetId, this.estimatedDamage = 0});
+
+  EnemyIntent withEstimate(int dmg) =>
+      EnemyIntent(kind, skillId: skillId, targetId: targetId, estimatedDamage: dmg);
+}
+
 class AiProfile {
   final double aggression; // 1.0 = Attacks constantly, 0.1 = Rarely attacks
   final double selfPreservation; // 1.0 = Runs/Defends at low HP, 0.1 = Fights to the death
@@ -86,7 +106,7 @@ class EnemyTemplate implements CombatDefinition {
     return EnemyTemplate(
       id: id,
       name: json['name'] as String,
-      imageAsset: json['imageAsset'] as String? ?? 'assets/images/enemy_werewolf_black.png',
+      imageAsset: json['imageAsset'] as String? ?? 'assets/images/enemies/werewolf_shadow.png',
       maxHp: maxHealth,
       maxStamina: maxStam,
       maxAp: maxActionPoints,
@@ -123,6 +143,9 @@ class ActiveEnemy implements CombatEntity {
   final RxInt bleedStacks = 0.obs;
   @override
   final RxInt poisonStacks = 0.obs;
+
+  /// The move this enemy has committed to for its next turn (null when none planned).
+  final Rxn<EnemyIntent> intent = Rxn<EnemyIntent>();
 
   ActiveEnemy({
     required this.instanceId,
@@ -209,7 +232,7 @@ class ActiveHero implements CombatEntity {
   ActiveHero({
     required this.id,
     required this.name,
-    this.imageAsset = 'assets/images/player.png',
+    this.imageAsset = 'assets/images/allies/mercenary_scout.png',
     required this.maxHp,
     required this.maxStamina,
     required this.strength,
@@ -263,7 +286,7 @@ class AllyTemplate implements CombatDefinition {
     return AllyTemplate(
       id: id,
       name: json['name'] as String,
-      imageAsset: json['imageAsset'] as String? ?? 'assets/images/player.png',
+      imageAsset: json['imageAsset'] as String? ?? 'assets/images/allies/mercenary_scout.png',
       maxHp: maxHealth,
       maxStamina: maxStam,
       maxAp: maxActionPoints,

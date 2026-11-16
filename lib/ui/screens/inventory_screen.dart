@@ -6,6 +6,7 @@ import '../../models/item.dart';
 import '../../models/weapon_perk.dart';
 import '../../states/inventory_state.dart';
 import '../../states/player_state.dart';
+import '../widgets/toast.dart';
 
 class InventoryScreen extends StatelessWidget {
   const InventoryScreen({super.key});
@@ -97,7 +98,7 @@ class InventoryScreen extends StatelessWidget {
             Flexible(
               flex: 4,
               child: Text(
-                item.name,
+                item.displayName,
                 style: VitruvianTypography.serifBody(
                   fontSize: 15,
                   color: VitruvianColors.agedBone,
@@ -177,7 +178,7 @@ class InventoryScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  item.name.toUpperCase(),
+                  item.displayName.toUpperCase(),
                   style: VitruvianTypography.serifTitle(
                     fontSize: 18,
                     color: const Color(0xFFE0C8B0),
@@ -185,7 +186,9 @@ class InventoryScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${item.weight.toStringAsFixed(2)} KG | ${item.category.name.toUpperCase()}',
+                  '${item.weight.toStringAsFixed(2)} KG | ${item.category.name.toUpperCase()}'
+                  '${item.twoHanded ? ' | TWO-HANDED' : ''}'
+                  '${item.count > 1 ? ' | x${item.count}' : ''}',
                   style: VitruvianTypography.monospaceData(
                     fontSize: 11,
                     color: const Color(0xFF8A7A68),
@@ -264,21 +267,18 @@ class InventoryScreen extends StatelessWidget {
                         ),
                         onPressed: () {
                           Navigator.pop(ctx);
+                          String message;
                           if (actionLabel == 'ARM' || actionLabel == 'WEAR') {
-                            playerState.equipArtifact(item);
-                            Get.snackbar('Inventory', 'Equipped ${item.name}',
-                                snackPosition: SnackPosition.BOTTOM,
-                                backgroundColor: const Color(0xFF201B15),
-                                colorText: const Color(0xFFC89B5D));
+                            final hero = playerState.activeHero.name;
+                            message = playerState.equipArtifact(item)
+                                ? '$hero equipped ${item.name}.'
+                                : '${item.name} can\'t be equipped.';
+                          } else if (actionLabel == 'CONSUME') {
+                            message = playerState.useConsumable(item) ?? '${item.name} has no effect here.';
                           } else {
-                            if (item.count <= 1) {
-                              inv.removeItem(item.id);
-                            }
-                            Get.snackbar('Inventory', '$actionLabel ${item.name}',
-                                snackPosition: SnackPosition.BOTTOM,
-                                backgroundColor: const Color(0xFF201B15),
-                                colorText: const Color(0xFFC89B5D));
+                            message = '${item.name} has no use here yet.';
                           }
+                          showToast('Inventory', message);
                         },
                         child: Text(actionLabel, style: VitruvianTypography.serifTitle(fontSize: 14)),
                       ),
@@ -294,10 +294,8 @@ class InventoryScreen extends StatelessWidget {
                         onPressed: () {
                           Navigator.pop(ctx);
                           inv.removeItem(item.id);
-                          Get.snackbar('Inventory', 'Disposed of ${item.name}',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: const Color(0xFF201B15),
-                              colorText: Colors.redAccent);
+                          final left = inv.countOf(item.id);
+                          showToast('Inventory', 'Disposed of one ${item.name}${left > 0 ? ' ($left left)' : ''}.');
                         },
                         child: Text('DISPOSE', style: VitruvianTypography.serifTitle(fontSize: 14)),
                       ),

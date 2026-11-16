@@ -8,6 +8,7 @@ import '../models/hero_character.dart';
 import '../models/character_class.dart';
 import '../states/player_state.dart';
 import '../states/combat_state.dart';
+import '../ui/widgets/toast.dart';
 
 class SandboxDungeonController extends GetxController {
   // Navigation phase: 'setup' or 'arena'
@@ -282,12 +283,7 @@ class SandboxDungeonController extends GetxController {
       combatController.inCombat.value = false;
       combatController.isSandbox.value = false;
       phase.value = 'setup';
-      Get.snackbar(
-        'SANDBOX CONQUERED!',
-        'You have defeated all $totalWaves waves in the Island of Skulls Proving Grounds!',
-        backgroundColor: const Color(0xFF162516),
-        colorText: Colors.amberAccent,
-      );
+      showToast('SANDBOX CONQUERED!', 'You have defeated all $totalWaves waves in the Island of Skulls Proving Grounds!', tone: ToastTone.success);
     }
   }
 
@@ -298,7 +294,7 @@ class SandboxDungeonController extends GetxController {
       final fallbackTmpl = const EnemyTemplate(
         id: 'sandbox_guard',
         name: 'Skull Island Gladiator',
-        imageAsset: 'assets/images/enemy_werewolf_black.png',
+        imageAsset: 'assets/images/enemies/werewolf_shadow.png',
         maxHp: 50,
         maxStamina: 100,
         maxAp: 2,

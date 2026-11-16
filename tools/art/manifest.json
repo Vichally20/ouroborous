@@ -1,0 +1,1307 @@
+{
+  "version": 1,
+  "style_references": [
+    "assets/images/vitruvian.jpg",
+    "assets/images/skull.jpg",
+    "assets/images/app_icon.png"
+  ],
+  "styles": {
+    "ink": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described",
+    "vellum": "hand-coloured antique atlas map engraving: fine black ink linework and hatching for mountains and coasts, rich watercolour washes of verdigris green, ochre, lapis blue seas and crimson accents on aged cream paper, sea monsters and ships as decoration, Renaissance cartography, absolutely no text, no labels, no lettering"
+  },
+  "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+  "framing": {
+    "portrait": {
+      "size": "1024x1536",
+      "text": "full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure"
+    },
+    "creature": {
+      "size": "1024x1536",
+      "text": "full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it"
+    },
+    "scene": {
+      "size": "1024x1792",
+      "text": "vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described"
+    },
+    "map": {
+      "size": "1792x1024",
+      "text": "top-down map view, entire landmass in frame, clean areas left for labels, absolutely no text or lettering anywhere"
+    },
+    "item": {
+      "size": "512x512",
+      "text": "a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands"
+    },
+    "icon": {
+      "size": "512x512",
+      "text": "a single flat round medallion seen straight on, filling most of the frame, centred, one bold simple emblem on its face with thick shapes and strong contrast so it reads at very small size, isolated on a pure black background"
+    }
+  },
+  "assets": [
+    {
+      "id": "vitruvian",
+      "file": "assets/images/vitruvian.jpg",
+      "kind": "item",
+      "status": "keep",
+      "priority": "-",
+      "style": "ink",
+      "subject": "The Vitruvian man in a runic circle.",
+      "used_by": [
+        "you hub"
+      ],
+      "note": "The style reference for everything else. Feed it to the generator as a style image."
+    },
+    {
+      "id": "skull",
+      "file": "assets/images/skull.jpg",
+      "kind": "item",
+      "status": "keep",
+      "priority": "-",
+      "style": "ink",
+      "subject": "Skull in a Spartan helmet, annotated.",
+      "used_by": [
+        "talents_screen.dart"
+      ],
+      "note": "Second style reference: shows how bronze is allowed as a spot colour."
+    },
+    {
+      "id": "app_icon",
+      "file": "assets/images/app_icon.png",
+      "kind": "item",
+      "status": "keep",
+      "priority": "-",
+      "style": "ink",
+      "subject": "Knotted ouroboros in a runic ring.",
+      "used_by": [
+        "launcher icons"
+      ],
+      "note": "Already on-style. Only fix: it is a JPEG named .png; re-export it as a real PNG and rerun flutter_launcher_icons."
+    },
+    {
+      "id": "class_warrior",
+      "file": "assets/images/portraits/class_warrior.png",
+      "kind": "portrait",
+      "status": "regenerate",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "the Anatomical Warrior: a towering soldier of hypertrophic musculature, the armour on his left side cut away to reveal flayed muscle drawn like an écorché study, tarnished bronze half-plate and pauldron on the right, a massive blackiron two-handed claymore resting point-down, scarred shaved head, calm brutal stare",
+      "used_by": [
+        "intro_screen.dart",
+        "persona_screen.dart",
+        "combat_screen.dart"
+      ],
+      "note": "Current art is cel-shaded comic style and also doubles as the Alpha Werewolf by mistake.",
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: the Anatomical Warrior: a towering soldier of hypertrophic musculature, the armour on his left side cut away to reveal flayed muscle drawn like an écorché study, tarnished bronze half-plate and pauldron on the right, a massive blackiron two-handed claymore resting point-down, scarred shaved head, calm brutal stare. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "hero_warrior_1",
+      "file": "assets/images/portraits/hero_warrior_1.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a battle-hardened knight in his forties, short grey-shot beard, polished steel and bronze plate armour over a deep crimson tabard, a long blackiron two-handed claymore resting point-down before him, steady proud stare. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume",
+      "used_by": [
+        "intro_screen.dart (portrait picker)",
+        "persona_screen.dart",
+        "combat_screen.dart"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a battle-hardened knight in his forties, short grey-shot beard, polished steel and bronze plate armour over a deep crimson tabard, a long blackiron two-handed claymore resting point-down before him, steady proud stare. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "note": "Installed as a TRANSPARENT full-figure cutout (seed 2585904546): untrimmed *_cut.png cropped to the figure, scaled into 1024x1536 with 70px above the head and feet 40px from the bottom. Do not use --refinish (it trims 8% off every edge, which cuts the head, and flattens onto black)."
+    },
+    {
+      "id": "hero_warrior_2",
+      "file": "assets/images/portraits/hero_warrior_2.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a tall shieldmaiden knight with a long auburn braid, burnished steel half-plate with bronze trim over a forest-green surcoat, a heavy two-handed greatsword held across her shoulder, fierce calm expression. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume",
+      "used_by": [
+        "intro_screen.dart (portrait picker)",
+        "persona_screen.dart",
+        "combat_screen.dart"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a tall shieldmaiden knight with a long auburn braid, burnished steel half-plate with bronze trim over a forest-green surcoat, a heavy two-handed greatsword held across her shoulder, fierce calm expression. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "note": "Installed as a TRANSPARENT full-figure cutout (seed 2859479664): untrimmed *_cut.png cropped to the figure, scaled into 1024x1536 with 70px above the head and feet 40px from the bottom. Do not use --refinish (it trims 8% off every edge, which cuts the head, and flattens onto black)."
+    },
+    {
+      "id": "hero_warrior_3",
+      "file": "assets/images/portraits/hero_warrior_3.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a young broad-shouldered mercenary with a scarred jaw and dark curls, brigandine armour studded with brass, a wolf-fur mantle over one shoulder, gripping a two-handed claymore low at his side. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume",
+      "used_by": [
+        "intro_screen.dart (portrait picker)",
+        "persona_screen.dart",
+        "combat_screen.dart"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a young broad-shouldered mercenary with a scarred jaw and dark curls, brigandine armour studded with brass, a wolf-fur mantle over one shoulder, gripping a two-handed claymore low at his side. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "note": "Installed as a TRANSPARENT full-figure cutout (seed 143047888): untrimmed *_cut.png cropped to the figure, scaled into 1024x1536 with 70px above the head and feet 40px from the bottom. Do not use --refinish (it trims 8% off every edge, which cuts the head, and flattens onto black)."
+    },
+    {
+      "id": "hero_sorcerer_1",
+      "file": "assets/images/portraits/hero_sorcerer_1.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "an elderly hermetic alchemist with a long white beard, deep sapphire-blue robes embroidered with gold astrological sigils, a ceremonial athame in one hand and a glowing amber vial in the other. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume",
+      "used_by": [
+        "intro_screen.dart (portrait picker)",
+        "persona_screen.dart",
+        "combat_screen.dart"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: an elderly hermetic alchemist with a long white beard, deep sapphire-blue robes embroidered with gold astrological sigils, a ceremonial athame in one hand and a glowing amber vial in the other. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "note": "Installed as a TRANSPARENT full-figure cutout (seed 3217914537): untrimmed *_cut.png cropped to the figure, scaled into 1024x1536 with 70px above the head and feet 40px from the bottom. Do not use --refinish (it trims 8% off every edge, which cuts the head, and flattens onto black)."
+    },
+    {
+      "id": "hero_sorcerer_2",
+      "file": "assets/images/portraits/hero_sorcerer_2.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a young woman astrologer with dark hair pinned up, flowing crimson and gold robes, a small brass armillary sphere floating above one open palm, a ceremonial dagger at her belt, serene focused gaze. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume",
+      "used_by": [
+        "intro_screen.dart (portrait picker)",
+        "persona_screen.dart",
+        "combat_screen.dart"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a young woman astrologer with dark hair pinned up, flowing crimson and gold robes, a small brass armillary sphere floating above one open palm, a ceremonial dagger at her belt, serene focused gaze. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "note": "Installed as a TRANSPARENT full-figure cutout (seed 1271916136): untrimmed *_cut.png cropped to the figure, scaled into 1024x1536 with 70px above the head and feet 40px from the bottom. Do not use --refinish (it trims 8% off every edge, which cuts the head, and flattens onto black)."
+    },
+    {
+      "id": "hero_sorcerer_3",
+      "file": "assets/images/portraits/hero_sorcerer_3.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a gaunt hooded hermetic scholar with sharp features and a trimmed black beard, emerald-green and bronze robes, a heavy grimoire chained to his belt, faint pale-blue arcane light curling around one raised hand. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume",
+      "used_by": [
+        "intro_screen.dart (portrait picker)",
+        "persona_screen.dart",
+        "combat_screen.dart"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a gaunt hooded hermetic scholar with sharp features and a trimmed black beard, emerald-green and bronze robes, a heavy grimoire chained to his belt, faint pale-blue arcane light curling around one raised hand. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "note": "Installed as a TRANSPARENT full-figure cutout (seed 1210501380): untrimmed *_cut.png cropped to the figure, scaled into 1024x1536 with 70px above the head and feet 40px from the bottom. Do not use --refinish (it trims 8% off every edge, which cuts the head, and flattens onto black)."
+    },
+    {
+      "id": "hero_assassin_1",
+      "file": "assets/images/portraits/hero_assassin_1.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a lithe hooded woman archer in fitted charcoal leather armour with a deep-red sash, a yew recurve shortbow in one hand, quiver of black-fletched arrows at her hip, half-mask over the lower face. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume",
+      "used_by": [
+        "intro_screen.dart (portrait picker)",
+        "persona_screen.dart",
+        "combat_screen.dart"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a lithe hooded woman archer in fitted charcoal leather armour with a deep-red sash, a yew recurve shortbow in one hand, quiver of black-fletched arrows at her hip, half-mask over the lower face. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "note": "Installed as a TRANSPARENT full-figure cutout (seed 1271926813): untrimmed *_cut.png cropped to the figure, scaled into 1024x1536 with 70px above the head and feet 40px from the bottom. Do not use --refinish (it trims 8% off every edge, which cuts the head, and flattens onto black)."
+    },
+    {
+      "id": "hero_assassin_2",
+      "file": "assets/images/portraits/hero_assassin_2.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a slender masked man in black and oxblood leathers with a raised cowl, crouched slightly as if ready to move, a recurve shortbow drawn low, twin knives sheathed across his chest. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume",
+      "used_by": [
+        "intro_screen.dart (portrait picker)",
+        "persona_screen.dart",
+        "combat_screen.dart"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a slender masked man in black and oxblood leathers with a raised cowl, crouched slightly as if ready to move, a recurve shortbow drawn low, twin knives sheathed across his chest. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "note": "Installed as a TRANSPARENT full-figure cutout (seed 1121530844): untrimmed *_cut.png cropped to the figure, scaled into 1024x1536 with 70px above the head and feet 40px from the bottom. Do not use --refinish (it trims 8% off every edge, which cuts the head, and flattens onto black)."
+    },
+    {
+      "id": "hero_assassin_3",
+      "file": "assets/images/portraits/hero_assassin_3.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a young woman scout with short silver-blonde hair and sharp eyes, a midnight-blue hooded cloak over studded leather, a shortbow slung across her back and a slim dagger held reversed in one hand. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume",
+      "used_by": [
+        "intro_screen.dart (portrait picker)",
+        "persona_screen.dart",
+        "combat_screen.dart"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a young woman scout with short silver-blonde hair and sharp eyes, a midnight-blue hooded cloak over studded leather, a shortbow slung across her back and a slim dagger held reversed in one hand. Clean confident linework, handsome well-proportioned heroic figure, clear readable silhouette, uncluttered costume. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "note": "Installed as a TRANSPARENT full-figure cutout (seed 1568871056): untrimmed *_cut.png cropped to the figure, scaled into 1024x1536 with 70px above the head and feet 40px from the bottom. Do not use --refinish (it trims 8% off every edge, which cuts the head, and flattens onto black)."
+    },
+    {
+      "id": "class_sorcerer",
+      "file": "assets/images/portraits/class_sorcerer.png",
+      "kind": "portrait",
+      "status": "regenerate",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "the Hermetic Sorcerer: a gaunt, frail elderly scholar-mage with a thin bearded face and sunken eyes, a bronze surgical calliper frame strapped around his head, tattered academic robes in lapis blue and ochre, thin fingers holding a bronze astrolabe, a ritual dagger at the belt, faint alchemical symbols inked on his bare forearms",
+      "used_by": [
+        "intro_screen.dart",
+        "persona_screen.dart",
+        "combat_screen.dart"
+      ],
+      "note": "Current art is a cel-shaded paladin with a halo; it contradicts 'fragile skeletal frame'.",
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: the Hermetic Sorcerer: a gaunt, frail elderly scholar-mage with a thin bearded face and sunken eyes, a bronze surgical calliper frame strapped around his head, tattered academic robes in lapis blue and ochre, thin fingers holding a bronze astrolabe, a ritual dagger at the belt, faint alchemical symbols inked on his bare forearms. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "class_assassin",
+      "file": "assets/images/portraits/class_assassin.png",
+      "kind": "portrait",
+      "status": "regenerate",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "the Clinical Assassin: a lean hooded figure in a surgeon's leather apron, face wrapped in linen with two round bronze lenses over the eyes, arms bare and marked with precise ink diagrams of the veins, a long wide-bladed cinquedea held low, poised mid-step",
+      "used_by": [
+        "intro_screen.dart",
+        "persona_screen.dart",
+        "combat_screen.dart"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: the Clinical Assassin: a lean hooded figure in a surgeon's leather apron, face wrapped in linen with two round bronze lenses over the eyes, arms bare and marked with precise ink diagrams of the veins, a long wide-bladed cinquedea held low, poised mid-step. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "hero_warrior",
+      "file": "assets/images/hero_warrior.jpg",
+      "kind": "portrait",
+      "status": "regenerate",
+      "priority": "-",
+      "style": "ink",
+      "subject": "unused",
+      "note": "Not referenced anywhere in lib/. Delete it instead of regenerating."
+    },
+    {
+      "id": "werewolf_feral",
+      "file": "assets/images/enemies/werewolf_feral.png",
+      "kind": "creature",
+      "status": "regenerate",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "a werewolf, a monstrous half-man half-wolf standing hunched on two bent legs, a wolf head with snarling jaws, a muscular human torso covered in matted fur, long arms ending in huge clawed hands, ribs showing, blood on the muzzle",
+      "used_by": [
+        "bestiary.json werewolf_feral",
+        "combat_crypt_werewolves"
+      ],
+      "note": "Current file 'enemy_werewolf_orange.png' is actually a black wolf.",
+      "variants": [
+        "hurt: same creature recoiling from a blow, head snapped back, one limb raised defensively, crimson spatter (generate image-to-image from the idle)",
+        "attack: same creature lunging forward toward the viewer (image-to-image from the idle)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a werewolf, a monstrous half-man half-wolf standing hunched on two bent legs, a wolf head with snarling jaws, a muscular human torso covered in matted fur, long arms ending in huge clawed hands, ribs showing, blood on the muzzle. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "werewolf_shadow",
+      "file": "assets/images/enemies/werewolf_shadow.png",
+      "kind": "creature",
+      "status": "regenerate",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "a Shadow Werewolf: tall, emaciated and elongated, its lower body and one arm dissolving into drifting black smoke drawn in fine stipple, long thin claws, eyes as two pin-points of bone-white light",
+      "used_by": [
+        "bestiary.json werewolf_shadow",
+        "combat_crypt_werewolves"
+      ],
+      "variants": [
+        "hurt: same creature recoiling from a blow, head snapped back, one limb raised defensively, crimson spatter (generate image-to-image from the idle)",
+        "attack: same creature lunging forward toward the viewer (image-to-image from the idle)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a Shadow Werewolf: tall, emaciated and elongated, its lower body and one arm dissolving into drifting black smoke drawn in fine stipple, long thin claws, eyes as two pin-points of bone-white light. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "werewolf_alpha",
+      "file": "assets/images/enemies/werewolf_alpha.png",
+      "kind": "creature",
+      "status": "regenerate",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "an Alpha Werewolf: upright and massive, broad scarred chest, a streak of bone-white silver fur running from brow down the spine, leather harness straps, a tarnished silver medallion hanging at its throat, one claw dragging a broken chain",
+      "used_by": [
+        "bestiary.json werewolf_alpha",
+        "combat_crypt_werewolves",
+        "post_combat_werewolves (medallion)"
+      ],
+      "note": "Current file 'enemy_werewolf_silver.png' is a copy of class_warrior.jpg.",
+      "variants": [
+        "hurt: same creature recoiling from a blow, head snapped back, one limb raised defensively, crimson spatter (generate image-to-image from the idle)",
+        "attack: same creature lunging forward toward the viewer (image-to-image from the idle)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: an Alpha Werewolf: upright and massive, broad scarred chest, a streak of bone-white silver fur running from brow down the spine, leather harness straps, a tarnished silver medallion hanging at its throat, one claw dragging a broken chain. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "cultist_acolyte",
+      "file": "assets/images/enemies/cultist_acolyte.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "one hooded cult priest filling the frame from head to feet: heavy monk robes dyed deep blood crimson, deep hood hiding the face except a thin chanting mouth, a coiled serpent emblem embroidered in gold on the chest, a curved knife in one hand and a shallow brass offering bowl in the other, the robe hem wet and dripping",
+      "used_by": [
+        "bestiary.json cultist_acolyte",
+        "combat_cultists_01",
+        "cistern_approach"
+      ],
+      "note": "Currently reuses the black werewolf.",
+      "variants": [
+        "hurt: same creature recoiling from a blow, head snapped back, one limb raised defensively, crimson spatter (generate image-to-image from the idle)",
+        "attack: same creature lunging forward toward the viewer (image-to-image from the idle)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: one hooded cult priest filling the frame from head to feet: heavy monk robes dyed deep blood crimson, deep hood hiding the face except a thin chanting mouth, a coiled serpent emblem embroidered in gold on the chest, a curved knife in one hand and a shallow brass offering bowl in the other, the robe hem wet and dripping. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "cultist_hierophant",
+      "file": "assets/images/enemies/cultist_hierophant.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "the Ouroboros Hierophant, high priest of the cistern rite: taller than the acolytes, crimson robes layered with bronze-ringed vestments, a tall mitre shaped as a serpent swallowing its own tail, a veil of fine chain over the face, raising a glass vessel in which a human heart glows crimson, the other hand open in benediction",
+      "used_by": [
+        "new bestiary entry",
+        "cistern_approach (leader at the plinth)"
+      ],
+      "note": "New character. Gives the cistern ritual a leader and a boss for a harder variant of combat_cultists_01.",
+      "variants": [
+        "hurt: same creature recoiling from a blow, head snapped back, one limb raised defensively, crimson spatter (generate image-to-image from the idle)",
+        "attack: same creature lunging forward toward the viewer (image-to-image from the idle)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: the Ouroboros Hierophant, high priest of the cistern rite: taller than the acolytes, crimson robes layered with bronze-ringed vestments, a tall mitre shaped as a serpent swallowing its own tail, a veil of fine chain over the face, raising a glass vessel in which a human heart glows crimson, the other hand open in benediction. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "flesh_construct",
+      "file": "assets/images/enemies/flesh_construct.png",
+      "kind": "creature",
+      "status": "new",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "a huge monster made of many human corpses stitched together, rising waist-deep out of dark water, thick surgical stitches and metal staples across its torso, three mismatched arms, several human heads fused at its shoulders, water pouring off its body, scraps of torn robes caught in the stitches",
+      "used_by": [
+        "bestiary.json flesh_construct",
+        "combat_flesh_construct",
+        "ritual_completion"
+      ],
+      "note": "Currently reuses the Spartan warrior.",
+      "variants": [
+        "hurt: same creature recoiling from a blow, head snapped back, one limb raised defensively, crimson spatter (generate image-to-image from the idle)",
+        "attack: same creature lunging forward toward the viewer (image-to-image from the idle)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a huge monster made of many human corpses stitched together, rising waist-deep out of dark water, thick surgical stitches and metal staples across its torso, three mismatched arms, several human heads fused at its shoulders, water pouring off its body, scraps of torn robes caught in the stitches. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "jointed_stalker",
+      "file": "assets/images/enemies/jointed_stalker.png",
+      "kind": "creature",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "the Jointed Stalker, the monstrosity from the alcove: a towering, gaunt anatomical horror whose arms and legs have far too many joints, bending in impossible directions, a malformed elongated skull tilted as if tasting the air, one arm ending in a long scythe-like claw that drags along the ground",
+      "used_by": [
+        "alcove_recess (seen, not fought yet)"
+      ],
+      "note": "New. The story already describes it; give it a bestiary entry and a later encounter.",
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: the Jointed Stalker, the monstrosity from the alcove: a towering, gaunt anatomical horror whose arms and legs have far too many joints, bending in impossible directions, a malformed elongated skull tilted as if tasting the air, one arm ending in a long scythe-like claw that drags along the ground. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "skeleton_brute",
+      "file": "assets/images/enemies/skeleton_brute.png",
+      "kind": "creature",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a Skeleton Brute: a huge skeleton with thickened, fused bones, carrying a stone-headed maul, scraps of corroded bronze armour on the shoulders",
+      "used_by": [
+        "bestiary.json skeleton_brute (file missing)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a Skeleton Brute: a huge skeleton with thickened, fused bones, carrying a stone-headed maul, scraps of corroded bronze armour on the shoulders. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "skeleton_archer",
+      "file": "assets/images/enemies/skeleton_archer.png",
+      "kind": "creature",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a Skeleton Archer: a lean skeleton drawing a warped longbow, a quiver of black-fletched arrows across the ribs, a torn hood",
+      "used_by": [
+        "bestiary.json skeleton_archer (file missing)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a Skeleton Archer: a lean skeleton drawing a warped longbow, a quiver of black-fletched arrows across the ribs, a torn hood. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "skeleton_captain",
+      "file": "assets/images/enemies/skeleton_captain.png",
+      "kind": "creature",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a Skeleton Captain: a skeleton in a battered bronze cuirass and crested helm, a notched falchion raised, a torn crimson sash of rank",
+      "used_by": [
+        "bestiary.json skeleton_captain (file missing)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a Skeleton Captain: a skeleton in a battered bronze cuirass and crested helm, a notched falchion raised, a torn crimson sash of rank. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "skeleton_mage",
+      "file": "assets/images/enemies/skeleton_mage.png",
+      "kind": "creature",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a Skeleton Mage: a robed skeleton with an anatomical diagram etched across its skull, a crimson flame cupped above one bony hand, a staff of fused vertebrae",
+      "used_by": [
+        "bestiary.json skeleton_mage (file missing)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a Skeleton Mage: a robed skeleton with an anatomical diagram etched across its skull, a crimson flame cupped above one bony hand, a staff of fused vertebrae. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "gargoyle",
+      "file": "assets/images/enemies/gargoyle.png",
+      "kind": "creature",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a Stone Gargoyle: a crouching winged grotesque of cracked granite, bat wings with stone membranes, a lion-like snarling face, moss in the cracks drawn in stipple",
+      "used_by": [
+        "bestiary.json gargoyle (file missing)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a Stone Gargoyle: a crouching winged grotesque of cracked granite, bat wings with stone membranes, a lion-like snarling face, moss in the cracks drawn in stipple. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "zombie_common",
+      "file": "assets/images/enemies/zombie_common.png",
+      "kind": "creature",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a Common Zombie: a shambling corpse in a burial shroud, jaw hanging loose, autopsy Y-incision stitched shut on the chest",
+      "used_by": [
+        "bestiary.json zombie_common (file missing)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a Common Zombie: a shambling corpse in a burial shroud, jaw hanging loose, autopsy Y-incision stitched shut on the chest. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "zombie_rotted",
+      "file": "assets/images/enemies/zombie_rotted.png",
+      "kind": "creature",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a Rotted Zombie: a bloated, half-liquefied corpse, ribs exposed through rotten flesh, toxic drool falling from its mouth",
+      "used_by": [
+        "bestiary.json zombie_rotted (file missing)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a Rotted Zombie: a bloated, half-liquefied corpse, ribs exposed through rotten flesh, toxic drool falling from its mouth. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "wraith",
+      "file": "assets/images/enemies/wraith.png",
+      "kind": "creature",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a Wraith: a floating hooded spectre with no legs, its tattered shroud trailing into smoke, long skeletal fingers reaching forward, an empty black face with two pale lights",
+      "used_by": [
+        "bestiary.json wraith (file missing)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a Wraith: a floating hooded spectre with no legs, its tattered shroud trailing into smoke, long skeletal fingers reaching forward, an empty black face with two pale lights. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "ally_shadow_hound",
+      "file": "assets/images/allies/shadow_hound.png",
+      "kind": "creature",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a Shadow Hound: a lean, loyal hunting hound whose hindquarters dissolve into stippled smoke, a bronze collar with a small ouroboros tag",
+      "used_by": [
+        "allies.json shadow_hound (reuses werewolf art)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a Shadow Hound: a lean, loyal hunting hound whose hindquarters dissolve into stippled smoke, a bronze collar with a small ouroboros tag. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "ally_iron_golem",
+      "file": "assets/images/allies/iron_golem.png",
+      "kind": "creature",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "an Iron Golem: a riveted iron automaton built like a da Vinci war machine, its chest plate open to show bronze gears arranged like a ribcage and heart, heavy fists, a single round lens for an eye",
+      "used_by": [
+        "allies.json iron_golem (reuses the Spartan)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: an Iron Golem: a riveted iron automaton built like a da Vinci war machine, its chest plate open to show bronze gears arranged like a ribcage and heart, heavy fists, a single round lens for an eye. Framing: full-length creature filling most of the frame, entire silhouette visible, readable as a silhouette at small size, isolated on a pure black background with black margin around it.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "ally_mercenary_scout",
+      "file": "assets/images/allies/mercenary_scout.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a Mercenary Scout: a weathered ranger in a hooded travel cloak and leather jerkin, a weathered shortbow in hand, a satchel of maps, alert and half-turned as if listening",
+      "used_by": [
+        "allies.json mercenary_scout (file 'player.png' missing)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a Mercenary Scout: a weathered ranger in a hooded travel cloak and leather jerkin, a weathered shortbow in hand, a satchel of maps, alert and half-turned as if listening. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_undercroft",
+      "file": "assets/images/locations/undercroft.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "the Undercroft: a vaulted crypt chamber of old masonry, a monolithic altar of black stone stained with old blood at the centre, pale shafts of light falling through a fractured iron grating high in the ceiling, dust motes, bones in wall niches",
+      "used_by": [
+        "crypt_entrance",
+        "nav undercroft",
+        "combat_crypt_werewolves backdrop"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: the Undercroft: a vaulted crypt chamber of old masonry, a monolithic altar of black stone stained with old blood at the centre, pale shafts of light falling through a fractured iron grating high in the ceiling, dust motes, bones in wall niches. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_alcove_recess",
+      "file": "assets/images/locations/alcove_recess.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "a narrow alcove in damp crypt masonry seen from inside, a corridor beyond where a long gouge has been scraped along the stone at shoulder height, the faint edge of a huge jointed shadow on the far wall",
+      "used_by": [
+        "alcove_recess"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a narrow alcove in damp crypt masonry seen from inside, a corridor beyond where a long gouge has been scraped along the stone at shoulder height, the faint edge of a huge jointed shadow on the far wall. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_sacrificial_archive",
+      "file": "assets/images/locations/sacrificial_archive.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "close view of the black stone altar with a hidden drawer slid open, stacks of vellum pages with anatomical diagrams, a letter sealed with crimson wax pressed with an ouroboros",
+      "used_by": [
+        "sacrificial_archive",
+        "letter_contents"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: close view of the black stone altar with a hidden drawer slid open, stacks of vellum pages with anatomical diagrams, a letter sealed with crimson wax pressed with an ouroboros. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_western_descent",
+      "file": "assets/images/locations/western_descent.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "a corridor sloping steeply downward where hewn stone gives way to a natural cave slick with condensation, clusters of bioluminescent fungi on the ceiling drawn as pale glowing stipple with a faint verdigris tint (the only place this tint is allowed)",
+      "used_by": [
+        "western_passage"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a corridor sloping steeply downward where hewn stone gives way to a natural cave slick with condensation, clusters of bioluminescent fungi on the ceiling drawn as pale glowing stipple with a faint verdigris tint (the only place this tint is allowed). Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_cistern",
+      "file": "assets/images/locations/cistern.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "a vast underground cistern with stone columns rising from stagnant black water, a ring of small hooded crimson-robed figures standing knee-deep around a stone plinth, on the plinth a glass vessel holding a glowing crimson heart, torches reflected in the water, seen from far across the water",
+      "used_by": [
+        "cistern_approach",
+        "vessel_theft",
+        "combat_cultists_01 backdrop"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a vast underground cistern with stone columns rising from stagnant black water, a ring of small hooded crimson-robed figures standing knee-deep around a stone plinth, on the plinth a glass vessel holding a glowing crimson heart, torches reflected in the water, seen from far across the water. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_cistern_awakened",
+      "file": "assets/images/locations/cistern_awakened.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "a flooded underground hall with stone columns, a broken glass jar on a stone pedestal in the middle of the water with a bright beam of light shooting straight up from it into the vaulted ceiling, robed bodies floating face-down around the pedestal, ripples spreading across the water",
+      "used_by": [
+        "ritual_completion",
+        "combat_flesh_construct backdrop"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a flooded underground hall with stone columns, a broken glass jar on a stone pedestal in the middle of the water with a bright beam of light shooting straight up from it into the vaulted ceiling, robed bodies floating face-down around the pedestal, ripples spreading across the water. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_cistern_still",
+      "file": "assets/images/locations/cistern_still.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "the underground cistern after battle: water still again, a vast stitched corpse half-sunk in the shallows, the empty plinth, one guttering torch",
+      "used_by": [
+        "post_combat_cultists",
+        "post_combat_flesh_construct"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: the underground cistern after battle: water still again, a vast stitched corpse half-sunk in the shallows, the empty plinth, one guttering torch. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_scriptorium",
+      "file": "assets/images/locations/scriptorium.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "the Vichally Amphitheater Scriptorium: a steep wooden anatomical theatre of tiered oval galleries descending to a single dissection table lit by candles, hanging anatomical charts, night",
+      "used_by": [
+        "nav n1"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: the Vichally Amphitheater Scriptorium: a steep wooden anatomical theatre of tiered oval galleries descending to a single dissection table lit by candles, hanging anatomical charts, night. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_scriptorium_courtyard",
+      "file": "assets/images/locations/scriptorium_courtyard.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a cloistered stone courtyard at night under a sky of fine engraved stars, a rusted iron grate forced open in the flagstones, the dome of an anatomical theatre beyond",
+      "used_by": [
+        "northern_escape"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a cloistered stone courtyard at night under a sky of fine engraved stars, a rusted iron grate forced open in the flagstones, the dome of an anatomical theatre beyond. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_scribe_cobblestones",
+      "file": "assets/images/locations/scribe_cobblestones.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "rain-slicked narrow cobbled alleys winding between leaning timber houses, hanging apothecary signs shaped like mortar and pestle (no lettering), lanterns reflected in puddles, dusk",
+      "used_by": [
+        "nav n2"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: rain-slicked narrow cobbled alleys winding between leaning timber houses, hanging apothecary signs shaped like mortar and pestle (no lettering), lanterns reflected in puddles, dusk. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_cartography_vault",
+      "file": "assets/images/locations/cartography_vault.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a subterranean archive vault of brick arches, shelves of rolled parchment maps, a large bronze armillary sphere and a da Vinci style map-drawing machine at the centre, candlelight",
+      "used_by": [
+        "nav n3"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a subterranean archive vault of brick arches, shelves of rolled parchment maps, a large bronze armillary sphere and a da Vinci style map-drawing machine at the centre, candlelight. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_shambles",
+      "file": "assets/images/locations/shambles.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a crowded slum of crooked wooden hovels against a towering city wall, muddy paths, hanging laundry, a scavenger's cart, smoke",
+      "used_by": [
+        "nav slums"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a crowded slum of crooked wooden hovels against a towering city wall, muddy paths, hanging laundry, a scavenger's cart, smoke. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_bazaar",
+      "file": "assets/images/locations/bazaar.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a bustling high-street bazaar of cloth awnings and armourers' stalls, racks of blades and shields, hanging lamps, crowds rendered as small silhouettes",
+      "used_by": [
+        "nav market"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a bustling high-street bazaar of cloth awnings and armourers' stalls, racks of blades and shields, hanging lamps, crowds rendered as small silhouettes. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_forge",
+      "file": "assets/images/locations/forge.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a soot-blackened blacksmith's forge on a city high street, glowing coal hearth and leather bellows, an anvil with a half-finished sword, racks of blades, tongs and hammers on the walls, sparks and smoke rising to the rafters",
+      "used_by": [
+        "nav forge"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a soot-blackened blacksmith's forge on a city high street, glowing coal hearth and leather bellows, an anvil with a half-finished sword, racks of blades, tongs and hammers on the walls, sparks and smoke rising to the rafters. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_inn",
+      "file": "assets/images/locations/inn.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a cramped, smoky low-ceilinged inn common room in a city's poorest quarter, sagging timber beams, a tallow-lantern over a scarred oak bar, ale barrels and a stew cauldron over a sooty hearth, straw pallets and rickety stairs up to rented rooms, patched cloaks hung on pegs",
+      "used_by": [
+        "nav inn"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a cramped, smoky low-ceilinged inn common room in a city's poorest quarter, sagging timber beams, a tallow-lantern over a scarred oak bar, ale barrels and a stew cauldron over a sooty hearth, straw pallets and rickety stairs up to rented rooms, patched cloaks hung on pegs. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_bank",
+      "file": "assets/images/locations/bank.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "the marble hall of a Renaissance counting house, heavy oak counters with brass scales and stacks of coins, ledgers, a great round iron vault door set into the back wall, candle chandeliers, columns",
+      "used_by": [
+        "nav bank"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: the marble hall of a Renaissance counting house, heavy oak counters with brass scales and stacks of coins, ledgers, a great round iron vault door set into the back wall, candle chandeliers, columns. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_docks",
+      "file": "assets/images/locations/docks.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "misty riverfront piers at night, smuggler boats moored beside a waterfront tavern with a hanging anchor sign (no lettering), crates and coiled rope, river mist",
+      "used_by": [
+        "nav docks"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: misty riverfront piers at night, smuggler boats moored beside a waterfront tavern with a hanging anchor sign (no lettering), crates and coiled rope, river mist. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "loc_keep",
+      "file": "assets/images/locations/keep.webp",
+      "kind": "scene",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a heavily fortified stone citadel on a rise above the city, high curtain walls, banners, a gatehouse with portcullis, storm clouds in fine hatching",
+      "used_by": [
+        "nav keep"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a heavily fortified stone citadel on a rise above the city, high curtain walls, banners, a gatehouse with portcullis, storm clouds in fine hatching. Framing: vertical establishing view of the environment, deep perspective, one strong focal point in the middle third, the top and bottom fifths fall off into near-black so interface text can sit over them, no people unless described.",
+      "size": "1024x1792",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "map_world",
+      "file": "assets/images/maps/world_aethelgard.webp",
+      "kind": "map",
+      "status": "regenerate",
+      "priority": "P1",
+      "style": "vellum",
+      "subject": "a sea chart of the imaginary kingdom of Aethelgard: one large island shaped like a crouching dragon with a spine of snowy mountains, its head to the north-west and tail curling south, forests and rivers across its body, a desert peninsula with a crimson-washed city on its eastern claw, a ring of small rocky islets around it, a great whirlpool in the southern sea, sea serpents and a galleon in the surrounding ocean",
+      "used_by": [
+        "navigation_screen.dart overworld"
+      ],
+      "note": "Current map has generated-text typos baked in (Isle of Skuils, Lerical Indian). Generate without any text; draw labels in Flutter on top so names can change and unlock.",
+      "prompt": "hand-coloured antique atlas map engraving: fine black ink linework and hatching for mountains and coasts, rich watercolour washes of verdigris green, ochre, lapis blue seas and crimson accents on aged cream paper, sea monsters and ships as decoration, Renaissance cartography, absolutely no text, no labels, no lettering. Subject: a sea chart of the imaginary kingdom of Aethelgard: one large island shaped like a crouching dragon with a spine of snowy mountains, its head to the north-west and tail curling south, forests and rivers across its body, a desert peninsula with a crimson-washed city on its eastern claw, a ring of small rocky islets around it, a great whirlpool in the southern sea, sea serpents and a galleon in the surrounding ocean. Framing: top-down map view, entire landmass in frame, clean areas left for labels, absolutely no text or lettering anywhere.",
+      "size": "1792x1024",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "map_bowerstone",
+      "file": "assets/images/maps/bowerstone.webp",
+      "kind": "map",
+      "status": "regenerate",
+      "priority": "P1",
+      "style": "vellum",
+      "subject": "a walled medieval city seen from above: an irregular ring of walls with gates on four sides, a cluster of keeps and a citadel to the north, a central plaza with radiating streets, a temple to the east, dense slums to the south-east, a river with docks along the southern wall, forest to the west, mountains to the north-east",
+      "used_by": [
+        "navigation_screen.dart city map"
+      ],
+      "note": "Same problem: garbled street names. Generate without text and overlay labels.",
+      "prompt": "hand-coloured antique atlas map engraving: fine black ink linework and hatching for mountains and coasts, rich watercolour washes of verdigris green, ochre, lapis blue seas and crimson accents on aged cream paper, sea monsters and ships as decoration, Renaissance cartography, absolutely no text, no labels, no lettering. Subject: a walled medieval city seen from above: an irregular ring of walls with gates on four sides, a cluster of keeps and a citadel to the north, a central plaza with radiating streets, a temple to the east, dense slums to the south-east, a river with docks along the southern wall, forest to the west, mountains to the north-east. Framing: top-down map view, entire landmass in frame, clean areas left for labels, absolutely no text or lettering anywhere.",
+      "size": "1792x1024",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_heart_vessel",
+      "file": "assets/images/items/heart_vessel.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "a tall glass jar with a cork stopper, containing a human heart suspended in liquid, a serpent biting its tail engraved on the glass",
+      "used_by": [
+        "vessel_theft (The Stolen Heart)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a tall glass jar with a cork stopper, containing a human heart suspended in liquid, a serpent biting its tail engraved on the glass. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_silver_medallion",
+      "file": "assets/images/items/silver_medallion.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "a tarnished silver medallion on a broken chain, embossed with a wolf skull",
+      "used_by": [
+        "post_combat_werewolves"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a tarnished silver medallion on a broken chain, embossed with a wolf skull. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_rusted_falchion",
+      "file": "assets/images/items/rusted_falchion.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P0",
+      "style": "ink",
+      "subject": "a rusted single-edged falchion with a notched blade and a cracked leather grip",
+      "used_by": [
+        "crypt_entrance loot"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a rusted single-edged falchion with a notched blade and a cracked leather grip. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_blackiron_claymore",
+      "file": "assets/images/items/blackiron_claymore.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a massive two-handed claymore forged from dark meteoric iron",
+      "used_by": [
+        "inventory w1"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a massive two-handed claymore forged from dark meteoric iron. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_ceremonial_athame",
+      "file": "assets/images/items/ceremonial_athame.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a double-edged ritual dagger with a bronze serpent hilt",
+      "used_by": [
+        "inventory"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a double-edged ritual dagger with a bronze serpent hilt. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_cinquedea",
+      "file": "assets/images/items/cinquedea.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a cinquedea: a short Italian dagger with a very broad triangular blade, as wide as a hand at the hilt and tapering to a point, fluted channels down the blade, a simple bronze crossguard",
+      "used_by": [
+        "inventory"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a cinquedea: a short Italian dagger with a very broad triangular blade, as wide as a hand at the hilt and tapering to a point, fluted channels down the blade, a simple bronze crossguard. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_shortbow",
+      "file": "assets/images/items/weathered_shortbow.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a short curved wooden hunting bow, the whole bow visible with its taut bowstring, grip wrapped in leather cord, one arrow lying beside it",
+      "used_by": [
+        "inventory"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a short curved wooden hunting bow, the whole bow visible with its taut bowstring, grip wrapped in leather cord, one arrow lying beside it. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_essence_clarity",
+      "file": "assets/images/items/essence_of_clarity.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a small alchemist's phial of pale vapour",
+      "used_by": [
+        "inventory c1"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a small alchemist's phial of pale vapour. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_mandrake_root",
+      "file": "assets/images/items/mandrake_root.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a dried mandrake root shaped like a tiny screaming human figure",
+      "used_by": [
+        "inventory c3"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a dried mandrake root shaped like a tiny screaming human figure. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_soul_gem",
+      "file": "assets/images/items/corrupted_soul_gem.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a cracked faceted gem with a crimson flaw writhing inside",
+      "used_by": [
+        "inventory c4"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a cracked faceted gem with a crimson flaw writhing inside. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_vault_key",
+      "file": "assets/images/items/rusty_vault_key.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a long rusted iron key with an ouroboros bow",
+      "used_by": [
+        "inventory"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a long rusted iron key with an ouroboros bow. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_astrolabe",
+      "file": "assets/images/items/hermetic_astrolabe.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a bronze hermetic astrolabe with anatomical figures on its rete",
+      "used_by": [
+        "inventory"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a bronze hermetic astrolabe with anatomical figures on its rete. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "item_crowns",
+      "file": "assets/images/items/ouroboros_crowns.png",
+      "kind": "item",
+      "status": "new",
+      "priority": "P2",
+      "style": "ink",
+      "subject": "a small stack of worn bronze coins stamped with an ouroboros",
+      "used_by": [
+        "inventory currency"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a small stack of worn bronze coins stamped with an ouroboros. Framing: a single object presented as a specimen plate, centred, three-quarter view, isolated on a pure black background, no hands.",
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "talent_iron_fundamentals",
+      "file": "assets/images/talents/talent_iron_fundamentals.png",
+      "kind": "icon",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a heater shield with a clenched iron gauntlet fist in front of it, no lettering, no runes",
+      "used_by": [
+        "talents_screen.dart (warrior root)"
+      ],
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "prompt": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a heater shield with a clenched iron gauntlet fist in front of it, no lettering, no runes. a single flat round medallion seen straight on, filling most of the frame, centred, one bold simple emblem on its face with thick shapes and strong contrast so it reads at very small size, isolated on a pure black background.",
+      "note": "Installed as a TRANSPARENT 256x256 medallion (seed 194238888): the *_cut.png cropped to the medallion and squared. The app clips it round and draws the owned/available/locked state itself. Do not use --refinish (flattens onto black)."
+    },
+    {
+      "id": "talent_juggernaut",
+      "file": "assets/images/talents/talent_juggernaut.png",
+      "kind": "icon",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a massive closed great helm seen from the front, no lettering, no runes",
+      "used_by": [
+        "talents_screen.dart (warrior branchA)"
+      ],
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "prompt": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a massive closed great helm seen from the front, no lettering, no runes. a single flat round medallion seen straight on, filling most of the frame, centred, one bold simple emblem on its face with thick shapes and strong contrast so it reads at very small size, isolated on a pure black background.",
+      "note": "Installed as a TRANSPARENT 256x256 medallion (seed 3973069855): the *_cut.png cropped to the medallion and squared. The app clips it round and draws the owned/available/locked state itself. Do not use --refinish (flattens onto black)."
+    },
+    {
+      "id": "talent_berserker",
+      "file": "assets/images/talents/talent_berserker.png",
+      "kind": "icon",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, two crossed bearded battle axes over a crimson flame, no lettering, no runes",
+      "used_by": [
+        "talents_screen.dart (warrior branchB)"
+      ],
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "prompt": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, two crossed bearded battle axes over a crimson flame, no lettering, no runes. a single flat round medallion seen straight on, filling most of the frame, centred, one bold simple emblem on its face with thick shapes and strong contrast so it reads at very small size, isolated on a pure black background.",
+      "note": "Installed as a TRANSPARENT 256x256 medallion (seed 418746993): the *_cut.png cropped to the medallion and squared. The app clips it round and draws the owned/available/locked state itself. Do not use --refinish (flattens onto black)."
+    },
+    {
+      "id": "talent_duelist",
+      "file": "assets/images/talents/talent_duelist.png",
+      "kind": "icon",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a single long two-handed sword point down inside a laurel wreath, no lettering, no runes",
+      "used_by": [
+        "talents_screen.dart (warrior branchC)"
+      ],
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "prompt": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a single long two-handed sword point down inside a laurel wreath, no lettering, no runes. a single flat round medallion seen straight on, filling most of the frame, centred, one bold simple emblem on its face with thick shapes and strong contrast so it reads at very small size, isolated on a pure black background.",
+      "note": "Installed as a TRANSPARENT 256x256 medallion (seed 2465201984): the *_cut.png cropped to the medallion and squared. The app clips it round and draws the owned/available/locked state itself. Do not use --refinish (flattens onto black)."
+    },
+    {
+      "id": "talent_shield_wall",
+      "file": "assets/images/talents/talent_shield_wall.png",
+      "kind": "icon",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, three tall pointed kite shields standing upright side by side and slightly overlapping, like a line of soldiers' shields, no lettering, no runes",
+      "used_by": [
+        "talents_screen.dart (warrior nodeA1)"
+      ],
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "prompt": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, three tall pointed kite shields standing upright side by side and slightly overlapping, like a line of soldiers' shields, no lettering, no runes. a single flat round medallion seen straight on, filling most of the frame, centred, one bold simple emblem on its face with thick shapes and strong contrast so it reads at very small size, isolated on a pure black background.",
+      "note": "Installed as a TRANSPARENT 256x256 medallion (seed 2418520874): the *_cut.png cropped to the medallion and squared. The app clips it round and draws the owned/available/locked state itself. Do not use --refinish (flattens onto black)."
+    },
+    {
+      "id": "talent_retribution",
+      "file": "assets/images/talents/talent_retribution.png",
+      "kind": "icon",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a shield with a sword thrusting out from behind it, no lettering, no runes",
+      "used_by": [
+        "talents_screen.dart (warrior nodeA2)"
+      ],
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "prompt": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a shield with a sword thrusting out from behind it, no lettering, no runes. a single flat round medallion seen straight on, filling most of the frame, centred, one bold simple emblem on its face with thick shapes and strong contrast so it reads at very small size, isolated on a pure black background.",
+      "note": "Installed as a TRANSPARENT 256x256 medallion (seed 4262734575): the *_cut.png cropped to the medallion and squared. The app clips it round and draws the owned/available/locked state itself. Do not use --refinish (flattens onto black)."
+    },
+    {
+      "id": "talent_flurry_of_death",
+      "file": "assets/images/talents/talent_flurry_of_death.png",
+      "kind": "icon",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a curved blade with three crimson blood drops falling from its edge, no lettering, no runes",
+      "used_by": [
+        "talents_screen.dart (warrior nodeC1)"
+      ],
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "prompt": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a curved blade with three crimson blood drops falling from its edge, no lettering, no runes. a single flat round medallion seen straight on, filling most of the frame, centred, one bold simple emblem on its face with thick shapes and strong contrast so it reads at very small size, isolated on a pure black background.",
+      "note": "Installed as a TRANSPARENT 256x256 medallion (seed 3304971984): the *_cut.png cropped to the medallion and squared. The app clips it round and draws the owned/available/locked state itself. Do not use --refinish (flattens onto black)."
+    },
+    {
+      "id": "talent_expose_weakness",
+      "file": "assets/images/talents/talent_expose_weakness.png",
+      "kind": "icon",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a steel breastplate split by a jagged crack, with a dagger point piercing through the crack, no lettering, no runes",
+      "used_by": [
+        "talents_screen.dart (warrior nodeC2)"
+      ],
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "prompt": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a steel breastplate split by a jagged crack, with a dagger point piercing through the crack, no lettering, no runes. a single flat round medallion seen straight on, filling most of the frame, centred, one bold simple emblem on its face with thick shapes and strong contrast so it reads at very small size, isolated on a pure black background.",
+      "note": "Installed as a TRANSPARENT 256x256 medallion (seed 2520887370): the *_cut.png cropped to the medallion and squared. The app clips it round and draws the owned/available/locked state itself. Do not use --refinish (flattens onto black)."
+    },
+    {
+      "id": "talent_execute",
+      "file": "assets/images/talents/talent_execute.png",
+      "kind": "icon",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a headsman's axe buried in a wooden chopping block, no lettering, no runes",
+      "used_by": [
+        "talents_screen.dart (warrior capstone)"
+      ],
+      "size": "512x512",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry",
+      "prompt": "a round medallion of blackened iron with a raised burnished gold rim, its dark face bearing in the centre, in bright gold and bone white, a headsman's axe buried in a wooden chopping block, no lettering, no runes. a single flat round medallion seen straight on, filling most of the frame, centred, one bold simple emblem on its face with thick shapes and strong contrast so it reads at very small size, isolated on a pure black background.",
+      "note": "Installed as a TRANSPARENT 256x256 medallion (seed 273139627): the *_cut.png cropped to the medallion and squared. The app clips it round and draws the owned/available/locked state itself. Do not use --refinish (flattens onto black)."
+    },
+    {
+      "id": "rowgan_raider",
+      "file": "assets/images/enemies/rowgan_raider.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a broad, bearded coastal raider in a salt-stained leather jerkin and mail shirt, a heavy rusted falchion in one fist, a red hand painted on his round shield, sea boots, brutal and weathered",
+      "used_by": [
+        "encounter combat_a1_cove"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a broad, bearded coastal raider in a salt-stained leather jerkin and mail shirt, a heavy rusted falchion in one fist, a red hand painted on his round shield, sea boots, brutal and weathered. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "rowgan_red_hand",
+      "file": "assets/images/enemies/rowgan_red_hand.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a lean, hard-faced woman raider with cropped dark hair and a red hand tattooed across her throat, grey sea cloak, a long curved knife held low and a short spear in the other hand, poised to strike",
+      "used_by": [
+        "encounter combat_a1_cove"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a lean, hard-faced woman raider with cropped dark hair and a red hand tattooed across her throat, grey sea cloak, a long curved knife held low and a short spear in the other hand, poised to strike. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    },
+    {
+      "id": "ally_tam",
+      "file": "assets/images/allies/tam.png",
+      "kind": "portrait",
+      "status": "new",
+      "priority": "P1",
+      "style": "ink",
+      "subject": "a young fisher from a poor coastal village, wiry and soot-streaked, hands wrapped in wet sailcloth bandages, patched wool smock and bare feet, gripping a long gutting knife and a boat hook, determined and frightened",
+      "used_by": [
+        "ally Tam (Act I)"
+      ],
+      "prompt": "scratchboard engraving in the manner of Gustave Dore and the copperplates of Vesalius's Fabrica: fine white cross-hatched and stippled lines scratched out of solid black, monochrome bone-white on black, Renaissance anatomist's notebook, clinical and grim, hard chiaroscuro from a single high light at upper left, the only colour is a sparing touch of tarnished bronze on metal and dried-blood crimson where described. Subject: a young fisher from a poor coastal village, wiry and soot-streaked, hands wrapped in wet sailcloth bandages, patched wool smock and bare feet, gripping a long gutting knife and a boat hook, determined and frightened. Framing: full-length figure standing in a three-quarter view, the whole body in frame with feet visible, head in the top fifth, isolated on a pure black background with generous black margin around the figure.",
+      "size": "1024x1536",
+      "negative": "full colour, saturated colours, cel shading, cartoon, anime, comic book, glowing outline, rim glow, neon, 3d render, photograph, smooth airbrushed digital painting, gradient sky, lens flare, text, letters, words, runes, labels, captions, numbers, watermark, signature, frame, border, multiple views, character sheet, cropped feet, blurry"
+    }
+  ]
+}

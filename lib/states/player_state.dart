@@ -1,10 +1,13 @@
 import 'package:get/get.dart';
 import '../models/attributes.dart';
+import '../models/consumable_effects.dart';
 import '../models/character_class.dart';
 import '../models/hero_character.dart';
 import '../models/item.dart';
 import '../models/loadout.dart';
+import '../models/talent_node.dart';
 import '../models/vitals.dart';
+import 'inventory_state.dart';
 
 class PlayerState extends GetxController {
   // Roster list of characters
@@ -51,6 +54,7 @@ class PlayerState extends GetxController {
           statBonus: 18,
           count: 1,
           perks: ['execute', 'parry'],
+          twoHanded: true,
         ),
         chest: const ArtifactItem(
           id: 'ap1',
@@ -207,7 +211,7 @@ class PlayerState extends GetxController {
     loadout.refresh();
   }
 
-  void initializeCustomCharacter(String name, int chosenIndex) {
+  void initializeCustomCharacter(String name, int chosenIndex, {String? portrait}) {
     if (chosenIndex < 0 || chosenIndex >= heroes.length) return;
     
     // Update selected hero's name and select them
@@ -221,6 +225,9 @@ class PlayerState extends GetxController {
       loadout: baseHero.loadout,
       vitals: baseHero.vitals,
       description: baseHero.description,
+      availableSkills: baseHero.availableSkills,
+      unlockedTalents: baseHero.unlockedTalents,
+      portrait: portrait ?? baseHero.portrait,
     );
     
     // Replace in heroes list
@@ -258,23 +265,78 @@ class PlayerState extends GetxController {
 
   bool get isEncumbered => loadout.value.totalEquippedWeight > maxWeightCapacity.value;
 
-  void equipArtifact(ArtifactItem item) {
-    loadout.value.equip(item);
+  HeroCharacter get activeHero => heroes[activeHeroIndex.value];
+
+  InventoryState? get _inventory =>
+      Get.isRegistered<InventoryState>() ? Get.find<InventoryState>() : null;
+
+  /// Moves [item] from the inventory into the active hero's slot. Whatever the
+  /// slot held (and an off-hand pushed out by a two-handed weapon) goes back to
+  /// the inventory. Returns false if the item can't be equipped or isn't carried.
+  bool equipArtifact(ArtifactItem item) {
+    if (!item.isEquippable) return false;
+    final inv = _inventory;
+    if (inv != null && !inv.removeItem(item.id)) return false;
+
+    final displaced = activeHero.loadout.equip(item);
+    for (final d in displaced) {
+      inv?.addItem(d, count: 1);
+    }
     loadout.refresh();
-    
-    // Sync to roster copy
-    final hero = heroes[activeHeroIndex.value];
-    hero.loadout.equip(item);
+    heroes.refresh();
+    return true;
   }
 
-  void unequipArtifact(AnatomicalSlot slot) {
-    loadout.value.unequip(slot);
+  /// Empties [slot] on the active hero and returns the item to the inventory.
+  ArtifactItem? unequipArtifact(AnatomicalSlot slot) {
+    final removed = activeHero.loadout.unequip(slot);
+    if (removed != null) _inventory?.addItem(removed, count: 1);
     loadout.refresh();
-
-    // Sync to roster copy
-    final hero = heroes[activeHeroIndex.value];
-    hero.loadout.unequip(slot);
+    heroes.refresh();
+    return removed;
   }
+
+  /// Uses one consumable outside battle. Returns a line describing what happened,
+  /// or null if the item has no effect here.
+  String? useConsumable(ArtifactItem item) {
+    final effect = ConsumableEffect.of(item.id);
+    final inv = _inventory;
+    if (effect == null) return null;
+    if (inv != null && !inv.removeItem(item.id)) return null;
+
+    final v = vitals.value;
+    v.currentHp = (v.currentHp + effect.hp).clamp(0, v.maxHp);
+    v.currentStamina = (v.currentStamina + effect.stamina).clamp(0, v.maxStamina);
+    v.currentSanity = (v.currentSanity + effect.sanity).clamp(0, v.maxSanity);
+    vitals.refresh();
+    return '${effect.flavour} (${effect.summary})';
+  }
+
+  // ─── Talents ───
+  // One point per level gained after the first. The root (tier I) is owned from
+  // the start, so a new hero has 0 points. Owned talents are permanent.
+
+  int talentPointsFor(HeroCharacter hero) {
+    if (hero.talentTree == null) return 0;
+    final earned = level.value; // level 1 pays for the root
+    return (earned - hero.unlockedTalents.length).clamp(0, 1 << 20);
+  }
+
+  bool canUnlockTalent(String nodeId, [HeroCharacter? hero]) {
+    final h = hero ?? activeHero;
+    final tree = h.talentTree;
+    if (tree == null || talentPointsFor(h) <= 0) return false;
+    return tree.isReachable(nodeId, h.unlockedTalents);
+  }
+
+  bool unlockTalent(String nodeId) {
+    if (!canUnlockTalent(nodeId)) return false;
+    activeHero.unlockedTalents.add(nodeId);
+    heroes.refresh();
+    return true;
+  }
+
+  TalentEffect get activeTalentEffect => activeHero.talentEffect;
 
   void depleteSanity(int amount) {
     vitals.value.currentSanity -= amount;

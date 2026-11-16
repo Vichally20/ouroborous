@@ -6,6 +6,7 @@ import '../../game/story_engine.dart';
 import '../../models/story_models.dart';
 import '../../states/player_state.dart';
 import '../widgets/etched_container.dart';
+import '../widgets/toast.dart';
 
 class ChronicleScreen extends StatelessWidget {
   const ChronicleScreen({super.key});
@@ -45,11 +46,15 @@ class ChronicleScreen extends StatelessWidget {
         );
       }
 
+      final choices = storyEngine.visibleChoices(node);
       return Column(
         children: [
-          // Scrollable Narrative Manuscript Body
+          // Scrollable manuscript: the scene, then its choices underneath (so a scene
+          // with many choices never squeezes its own text off the screen). A new scene,
+          // or a new outcome within one, opens scrolled to the top.
           Expanded(
             child: SingleChildScrollView(
+              key: ValueKey('${node.id}|${storyEngine.lastResult.value}|${storyEngine.visitedNodeIds.length}'),
               padding:
                   const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
               child: Column(
@@ -66,8 +71,25 @@ class ChronicleScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // Dynamic paragraphs
-                  ...node.paragraphs.map((paragraph) => Padding(
+                  // What the last choice did
+                  if (storyEngine.lastResult.value != null) ...[
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                      decoration: const BoxDecoration(
+                        border: Border(left: BorderSide(color: VitruvianColors.goldLeaf, width: 2)),
+                        color: Color(0xFF14110D),
+                      ),
+                      child: Text(
+                        storyEngine.lastResult.value!,
+                        style: VitruvianTypography.serifBody(fontSize: 15, color: VitruvianColors.goldLeaf)
+                            .copyWith(fontStyle: FontStyle.italic, height: 1.5),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Dynamic paragraphs (only those whose conditions hold)
+                  ...storyEngine.visibleParagraphs(node).map((paragraph) => Padding(
                         padding: const EdgeInsets.only(bottom: 20.0),
                         child: Text(
                           paragraph,
@@ -103,28 +125,31 @@ class ChronicleScreen extends StatelessWidget {
                     const SizedBox(height: 24),
                   ],
 
-                  const SizedBox(height: 20),
+                  // Choices
+                  if (choices.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        Expanded(child: Container(height: 1, color: const Color(0xFF262018))),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text('WHAT DO YOU DO?',
+                              style: VitruvianTypography.monospaceData(fontSize: 10, color: const Color(0xFF6A5E52))
+                                  .copyWith(letterSpacing: 2)),
+                        ),
+                        Expanded(child: Container(height: 1, color: const Color(0xFF262018))),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    for (final (i, choice) in choices.indexed)
+                      _ChoiceButton(
+                        choice: choice,
+                        numeral: choice.numeral ?? '${_roman(i + 1)}.',
+                        storyEngine: storyEngine,
+                      ),
+                  ],
+                  const SizedBox(height: 12),
                 ],
               ),
-            ),
-          ),
-
-          // Docked Bottom Choice Panel
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Color(0xFF0E0C0A),
-              border:
-                  Border(top: BorderSide(color: Color(0xFF262018), width: 1.0)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: node.choices.map((choice) {
-                return _ChoiceButton(
-                  choice: choice,
-                  storyEngine: storyEngine,
-                );
-              }).toList(),
             ),
           ),
         ],
@@ -133,37 +158,36 @@ class ChronicleScreen extends StatelessWidget {
   }
 }
 
+String _roman(int n) => const ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'].elementAtOrNull(n - 1) ?? '$n';
+
 class _ChoiceButton extends StatelessWidget {
   final Choice choice;
+  final String numeral;
   final StoryEngine storyEngine;
 
   const _ChoiceButton({
     required this.choice,
+    required this.numeral,
     required this.storyEngine,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bool isGated = choice.requiredAttribute != null;
-    final bool canPass = storyEngine.canPassGate(choice);
+    final bool canPass = !storyEngine.isLocked(choice);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10.0),
       child: InkWell(
         onTap: () {
-          if (isGated && !canPass) {
-            final playerState = Get.find<PlayerState>();
-            final attrName = choice.requiredAttribute ?? 'attribute';
-            final currentVal = playerState.attributes.value
-                .getAttributeValue(attrName);
-            Get.snackbar(
-              'INSUFFICIENT ${attrName.toUpperCase()}',
-              'This action requires at least ${choice.attributeRequirement} $attrName. Current: $currentVal.',
-              backgroundColor: VitruvianColors.rustBlood,
-              colorText: Colors.white,
-              borderRadius: 0,
-              margin: const EdgeInsets.all(12),
-            );
+          if (!canPass) {
+            if (choice.requiredAttribute != null && !storyEngine.canPassGate(choice)) {
+              final playerState = Get.find<PlayerState>();
+              final attrName = choice.requiredAttribute!;
+              final currentVal = playerState.attributes.value.getAttributeValue(attrName);
+              showToast('INSUFFICIENT ${attrName.toUpperCase()}', 'This action requires at least ${choice.attributeRequirement} $attrName. Current: $currentVal.', tone: ToastTone.danger);
+            } else {
+              showToast('NOT YET', 'Needs ${choice.needsLabel ?? 'something you lack'}.', tone: ToastTone.danger);
+            }
             return;
           }
           storyEngine.makeChoice(choice);
@@ -176,9 +200,9 @@ class _ChoiceButton extends StatelessWidget {
               canPass ? const Color(0xFF161412) : const Color(0xFF100E0C),
           child: Row(
             children: [
-              if (choice.numeral != null) ...[
+              ...[
                 Text(
-                  choice.numeral!,
+                  numeral,
                   style: VitruvianTypography.serifTitle(
                     fontSize: 16,
                     color: canPass
@@ -190,7 +214,7 @@ class _ChoiceButton extends StatelessWidget {
               ],
               Expanded(
                 child: Text(
-                  choice.text,
+                  storyEngine.render(choice.text),
                   style: VitruvianTypography.serifBody(
                     fontSize: 16,
                     color: canPass
@@ -199,9 +223,15 @@ class _ChoiceButton extends StatelessWidget {
                   ),
                 ),
               ),
-              if (isGated && !canPass)
-                const Icon(Icons.lock_outline,
-                    size: 16, color: Color(0xFF44403C)),
+              if (!canPass) ...[
+                if (choice.needsLabel != null)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: Text(choice.needsLabel!.toUpperCase(),
+                        style: VitruvianTypography.monospaceData(fontSize: 10, color: const Color(0xFF6A5E52))),
+                  ),
+                const Icon(Icons.lock_outline, size: 16, color: Color(0xFF44403C)),
+              ],
               if (choice.nextChapterId != null)
                 const Icon(Icons.arrow_forward,
                     size: 16, color: Color(0xFF6A5E52)),
@@ -341,15 +371,6 @@ class _LootCalloutWidgetState extends State<_LootCalloutWidget> {
         .replaceAll('Loot Uncovered:', '')
         .replaceAll('Acquired:', '')
         .trim();
-    Get.snackbar(
-      'LOOT ACQUIRED',
-      '$itemName has been added to your inventory.',
-      backgroundColor: VitruvianColors.goldLeaf,
-      colorText: const Color(0xFF0C0A08),
-      icon: const Icon(Icons.check_circle, color: Color(0xFF0C0A08)),
-      duration: const Duration(seconds: 3),
-      borderRadius: 0,
-      margin: const EdgeInsets.all(12),
-    );
+    showToast('LOOT ACQUIRED', '$itemName has been added to your inventory.', tone: ToastTone.loot, duration: const Duration(seconds: 3));
   }
 }

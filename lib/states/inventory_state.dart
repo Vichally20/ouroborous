@@ -25,57 +25,9 @@ class InventoryState extends GetxController {
       count: 145,
     ),
 
-    // Weapons
-    const ArtifactItem(
-      id: 'w1',
-      name: 'Blackiron Claymore',
-      description: 'Massive greatsword forged from dense meteoric iron.',
-      category: ItemCategory.weapon,
-      rarity: ItemRarity.relic,
-      weight: 8.50,
-      equipSlot: AnatomicalSlot.mainHand,
-      statBonus: 18,
-      count: 1,
-      perks: ['execute', 'parry'],
-    ),
-    const ArtifactItem(
-      id: 'w2',
-      name: 'Cinquedea of the Blind',
-      description: 'Broad ceremonial dagger engraved with braille runes.',
-      category: ItemCategory.weapon,
-      rarity: ItemRarity.clinical,
-      weight: 1.25,
-      equipSlot: AnatomicalSlot.secondaryHand,
-      statBonus: 12,
-      count: 1,
-      perks: ['bleed', 'expose_weakness'],
-    ),
-    const ArtifactItem(
-      id: 'w3',
-      name: 'Weathered Shortbow',
-      description: 'Yew recurve bow seasoned by ash and damp air.',
-      category: ItemCategory.weapon,
-      rarity: ItemRarity.common,
-      weight: 2.00,
-      equipSlot: AnatomicalSlot.mainHand,
-      statBonus: 10,
-      count: 1,
-      weaponRange: WeaponRange.ranged,
-      perks: ['lock_on'],
-    ),
+    // Weapons: the heroes start holding the Claymore, Cinquedea and Shortbow (see PlayerState).
 
     // Apparel
-    const ArtifactItem(
-      id: 'ap1',
-      name: 'Scholar\'s Tattered Robes',
-      description: 'Heavy academic vestments infused with alchemical fumes.',
-      category: ItemCategory.apparel,
-      rarity: ItemRarity.unpolished,
-      weight: 3.20,
-      equipSlot: AnatomicalSlot.chest,
-      statBonus: 14,
-      count: 1,
-    ),
     const ArtifactItem(
       id: 'ap2',
       name: 'Vanguard Greaves',
@@ -163,18 +115,44 @@ class InventoryState extends GetxController {
   List<ArtifactItem> get filteredItems =>
       ledger.where((item) => item.category == selectedTab.value).toList();
 
+  /// Carried weight: every item in a stack counts.
   double get totalInventoryWeight =>
-      ledger.fold(0.0, (sum, item) => sum + item.weight);
+      ledger.fold(0.0, (sum, item) => sum + item.weight * item.count);
+
+  int countOf(String id) => ledger.firstWhereOrNull((i) => i.id == id)?.count ?? 0;
 
   void selectTab(ItemCategory category) {
     selectedTab.value = category;
   }
 
-  void addItem(ArtifactItem item) {
-    ledger.add(item);
+  /// Adds [count] of [item], merging into an existing stack with the same id.
+  void addItem(ArtifactItem item, {int? count}) {
+    final n = count ?? item.count;
+    if (n <= 0) return;
+    final i = ledger.indexWhere((e) => e.id == item.id);
+    if (i >= 0) {
+      ledger[i] = ledger[i].copyWith(count: ledger[i].count + n);
+    } else {
+      ledger.add(item.copyWith(count: n));
+    }
   }
 
-  void removeItem(String id) {
+  /// Removes [count] from the stack with [id] (default one item). Returns false if
+  /// there weren't enough. The stack disappears when it reaches zero.
+  bool removeItem(String id, {int count = 1}) {
+    final i = ledger.indexWhere((e) => e.id == id);
+    if (i < 0 || ledger[i].count < count) return false;
+    final left = ledger[i].count - count;
+    if (left <= 0) {
+      ledger.removeAt(i);
+    } else {
+      ledger[i] = ledger[i].copyWith(count: left);
+    }
+    return true;
+  }
+
+  /// Removes the whole stack with [id].
+  void removeStack(String id) {
     ledger.removeWhere((item) => item.id == id);
   }
 }
